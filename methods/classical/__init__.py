@@ -10,6 +10,8 @@ fit() should return the predicted labels.
 """
 
 CLASSICAL_METHODS = {
+    # A simple implement for K-means
     "KMeans": KMeans,
+    # A simple implement for Spectral Clustering
     "SpectralClustering": SpectralClustering
 }

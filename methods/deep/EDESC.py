@@ -15,6 +15,34 @@ from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affi
 
 
 class EDESC(nn.Module):
+    """
+    EDESC model for deep subspace clustering.
+
+    Args:
+        dataset: Dataset object containing input dimension and label information.
+        logger (Logger): Logger object for logging.
+        cfg (config): Configuration object containing hyperparameters of the model.
+
+    Attributes:
+        input_dim (int): Input dimension. Automatically inferred from the dataset.
+        dataset: Dataset object.
+        n_clusters (int): Number of clusters.
+        encoder_dims (list): List of encoder dimensions.
+        decoder_dims (list): List of decoder dimensions.
+        hidden_dim (int): Hidden layer dimension.
+        d (int): Subspace dimension.
+        eta (float): Subspace affinity parameter.
+        beta (float): KL divergence weight parameter.
+        lr (float): Learning rate.
+        batch_size (int): Batch size.
+        logger (Logger): Logger object for logging.
+        device (str): Device name.
+        evaluate_scores (dict): Dictionary of evaluation scores.
+        clustering_scores (dict): Dictionary of clustering evaluation scores.
+        ae (EDESC_AE): EDESC autoencoder model.
+        D (nn.Parameter): Proxy of subspace bases.
+
+    """
 
     def __init__(self, dataset, logger: Logger, cfg: config):
         super(EDESC, self).__init__()
@@ -41,11 +69,15 @@ class EDESC(nn.Module):
                            self.decoder_dims, self.hidden_dim).to(self.device)
 
         # Subspace bases proxy
-        # TODO: 我觉得参数的shape应该是(hidden_dim, n_clusters * d)
+        # TODO: I think the shape of the parameter should be (hidden_dim, n_clusters * d)
         self.D = nn.Parameter(torch.Tensor(
             self.hidden_dim, self.n_clusters)).to(self.device)
 
     def pretrain(self):
+        """
+        Pretrain the EDESC autoencoder model.
+
+        """
         self.train()
         model = self.ae
         train_loader = DataLoader(
@@ -68,6 +100,15 @@ class EDESC(nn.Module):
         self.logger.info("Pretraining finished!")
 
     def train(self):
+        """
+        Train the EDESC model.
+
+        Returns:
+            y_pred (numpy.ndarray): Predicted cluster labels.
+            z (torch.Tensor): Hidden layer representation.
+            metrics (Metrics): Metrics object for evaluation.
+
+        """
         self.eval()
         metrics = Metrics(self.dataset.label is not None)
         optimizer = Adam(self.parameters(), lr=self.lr)
@@ -148,7 +189,18 @@ class EDESC(nn.Module):
         return y_pred, z, metrics
 
     def forward(self, x):
+        """
+        Forward pass function.
 
+        Args:
+            x (torch.Tensor): Input data.
+
+        Returns:
+            x_bar (torch.Tensor): Reconstructed input data.
+            s (torch.Tensor): Subspace affinity matrix.
+            z (torch.Tensor): Hidden layer representation.
+
+        """
         x_bar, z = self.ae(x)
         d = self.d
         s = None
