@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score, homogeneity_score, completeness_score
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from scipy.optimize import linear_sum_assignment as linear_assignment
+from logging import Logger
 
 
 class Metrics:
@@ -60,6 +61,15 @@ class Metrics:
     
     def avg(self):
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
+    
+    def save_rst(self, logger:Logger):
+        logger.info(
+            f"Clustering Over!\n" +
+            f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" +
+            f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" +
+            f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" +
+            f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
+        )
 
 
 class AverageMeter:
@@ -69,19 +79,27 @@ class AverageMeter:
 
     def reset(self):
         self.val_list = []
+        self.last = 0
         self.avg = 0
         self.max = float('-inf')
+        self.argmax = 0
         self.min = float('inf')
+        self.argmin = 0
         self.sum = 0
         self.cnt = 0
 
     def update(self, val, cnt=1):
         self.val_list.append(val)
+        self.last = val
         self.sum += val * cnt
         self.cnt += cnt
         self.avg = self.sum / self.cnt
-        self.max = max(self.max, val)
-        self.min = min(self.min, val)
+        if self.max < val:
+            self.max = val
+            self.argmax = self.cnt
+        if self.min > val:
+            self.min = val
+            self.argmin = self.cnt
 
     def __str__(self) -> str:
         return f"{self.name}: Avg: {self.avg:.4f} Min: {self.min:.4f} Max: {self.max:.4f}"

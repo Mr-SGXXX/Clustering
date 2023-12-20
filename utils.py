@@ -5,7 +5,6 @@ import random
 import logging
 import os
 import torch
-import tensorflow as tf
 import smtplib
 import typing
 import socket
@@ -109,6 +108,8 @@ class config:
 def get_args():
     """
     Get command line arguments.
+
+    :return: argparse.Namespace, command line arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-cp', '--config_path', help="Configuration file path")
@@ -116,7 +117,7 @@ def get_args():
     args = parser.parse_args()
     cfg = configparser.ConfigParser()
     cfg.read(args.config_path)
-    cfg = config(cfg)
+    cfg = config(cfg, split_symbol=args.split_symbol)
     return args, cfg
 
 def seed_init(seed=None):
@@ -126,7 +127,6 @@ def seed_init(seed=None):
     """
     if seed is not None:
         os.environ['PYTHONHASHSEED'] = str(seed)
-        os.environ['TF_DETERMINISTIC_OPS'] = '1'
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -200,7 +200,7 @@ class email_reminder:
         logger: logging.Logger, the logger object
     """
     def __init__(self, email_cfg_path, logger=None):
-        if self.email_cfg_path is None:
+        if email_cfg_path is None:
             self.in_use = False
             return
         cfg = config.init_by_path(email_cfg_path)

@@ -1,15 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from sklearn.cluster import KMeans
 from logging import Logger
 import numpy as np
+from tqdm import tqdm
 
 from metrics import Metrics
-from backbone import EDESC_AE
 from utils import config
+from .backbone.EDESC_AE import EDESC_AE
 from .loss.EDESC_loss import D_constraint1, D_constraint2
 from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
 
@@ -49,14 +51,20 @@ class EDESC(nn.Module):
         self.input_dim = dataset.input_dim
         self.dataset = dataset
 
-        self.n_clusters = cfg.get("global", "n_clusters")
+        if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
+            self.n_clusters = dataset.num_classes
+        else:
+            self.n_clusters = cfg.get("global", "n_clusters")
+            assert type(
+                self.n_clusters) is int, "n_clusters should be of type int"
+            assert self.n_clusters > 0, "n_clusters should be larger than 0"
         self.encoder_dims = cfg.get("EDESC", "encoder_dims")
         self.decoder_dims = cfg.get("EDESC", "decoder_dims")
         self.hidden_dim = cfg.get("EDESC", "hidden_dim")
         self.d = cfg.get("EDESC", "d")
         self.eta = cfg.get("EDESC", "eta")
         self.beta = cfg.get("EDESC", "beta")
-        self.lr = cfg.get("EDESC", "lr")
+        self.lr = cfg.get("EDESC", "learn_rate")
         self.batch_size = cfg.get("EDESC", "batch_size")
 
         self.logger = logger
@@ -70,36 +78,42 @@ class EDESC(nn.Module):
 
         # Subspace bases proxy
         # TODO: I think the shape of the parameter should be (hidden_dim, n_clusters * d)
-        self.D = nn.Parameter(torch.Tensor(
-            self.hidden_dim, self.n_clusters)).to(self.device)
+        self.D = Parameter(torch.Tensor(
+            self.hidden_dim, self.n_clusters * self.d)).to(self.device)
 
     def pretrain(self):
         """
         Pretrain the EDESC autoencoder model.
 
+        Returns:
+            z (torch.Tensor): Hidden layer representation of whole dataset.
         """
+
         self.train()
         model = self.ae
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=True)
         optimizer = Adam(model.parameters(), lr=self.lr)
-        for epoch in range(50):
-            total_loss = 0.
-            for batch_idx, (x, _, _) in enumerate(train_loader):
-                x = x.to(self.device)
-                optimizer.zero_grad()
-                x_bar, z = model(x)
-                loss = F.mse_loss(x_bar, x)
-                total_loss += loss.item()
-                loss.backward()
-                optimizer.step()
-
-            self.logger.info("Epoch {} loss={:.4f}".format(
-                epoch, total_loss / (batch_idx + 1)))
+        with tqdm(range(50), desc="Pretrain AE", dynamic_ncols=True, leave=False) as epoch_loader:
+            for epoch in epoch_loader:
+                total_loss = 0.
+                for batch_idx, (x, _, _) in enumerate(train_loader):
+                    x = x.to(self.device)
+                    optimizer.zero_grad()
+                    x_bar, z = model(x)
+                    loss = F.mse_loss(x_bar, x)
+                    total_loss += loss.item()
+                    loss.backward()
+                    optimizer.step()
+                if (epoch+1) % 10 == 0:
+                    self.logger.info("Pretrain Epoch {} loss={:.4f}".format(
+                        epoch + 1, total_loss / (batch_idx + 1)))
 
         self.logger.info("Pretraining finished!")
+        _, z = model(torch.Tensor(self.dataset.data).to(self.device))
+        return z
 
-    def train(self):
+    def train_model(self):
         """
         Train the EDESC model.
 
@@ -109,6 +123,8 @@ class EDESC(nn.Module):
             metrics (Metrics): Metrics object for evaluation.
 
         """
+        # self.ae.load_state_dict(torch.load(
+        #     "weight/reuters.pkl", map_location=self.device))
         self.eval()
         metrics = Metrics(self.dataset.label is not None)
         optimizer = Adam(self.parameters(), lr=self.lr)
@@ -116,76 +132,86 @@ class EDESC(nn.Module):
             self.dataset, batch_size=self.batch_size, shuffle=False)
         d_cons1 = D_constraint1()
         d_cons2 = D_constraint2()
-        
+
         data = torch.Tensor(self.dataset.data).to(self.device)
-        with torch.no_grad():
-            _, z = self.ae(data)
+        _, z = self.ae(data)
         kmeans = KMeans(n_clusters=self.n_clusters)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
-        self.D.data = Initialization_D(z, y_pred, self.n_clusters, self.d).to(
+        y_pred_last = y_pred
+        D = Initialization_D(z, y_pred, self.n_clusters, self.d)
+        self.D.data = torch.tensor(D).to(
             torch.float32).to(self.device)
 
         self.train()
-        for epoch in range(100):
-            _, tmp_s, z = self(data)
+        with tqdm(range(100), desc="Clustering", dynamic_ncols=True, leave=False) as epoch_loader:
+            for epoch in epoch_loader:
+                _, tmp_s, z = self(data)
 
-            # Update refined subspace affinity
-            tmp_s = tmp_s.data
-            s_tilde = refined_subspace_affinity(tmp_s)
+                # Update refined subspace affinity
+                tmp_s = tmp_s.data
+                s_tilde = refined_subspace_affinity(tmp_s)
 
-            # Evaluate clustering performance
-            y_pred = tmp_s.cpu().detach().numpy().argmax(1)
-            delta_label = np.sum(y_pred != y_pred_last).astype(
-                np.float32) / y_pred.shape[0]
-            y_pred_last = y_pred
-            _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.data.cpu().numpy(),
-                                                      y_true=self.dataset.label)
-            self.logger.info('Epoch {}'.format(epoch), ': Acc {:.4f}'.format(acc), 'NMI {:.4f}'.format(
-                nmi), 'ARI {:.4f}'.format(ari), 'Delta_label {:.4f}'.format(delta_label))
-            
-            total_reconstr_loss = 0
-            total_kl_loss = 0
-            total_loss_d1 = 0
-            total_loss_d2 = 0
-            for batch_idx, (x, _, idx) in enumerate(train_loader):
-                x = x.to(self.device)
-                idx = idx.to(self.device)
-                x_bar, s, z = self(x)
+                # Evaluate clustering performance
+                y_pred = tmp_s.cpu().detach().numpy().argmax(1)
+                delta_label = np.sum(y_pred != y_pred_last).astype(
+                    np.float32) / y_pred.shape[0]
+                y_pred_last = y_pred
+                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.data.cpu().numpy(),
+                                                          y_true=self.dataset.label)
+                if (epoch+1) % 10 == 0:
+                    self.logger.info(
+                        f'Epoch {epoch + 1}: Acc {acc:.4f} NMI {nmi:.4f} ARI {ari:.4f} Delta_label {delta_label:.4f}')
+                total_reconstr_loss = 0
+                total_kl_loss = 0
+                total_loss_d1 = 0
+                total_loss_d2 = 0
+                with tqdm(train_loader, desc="Epoch {}".format(epoch), dynamic_ncols=True, leave=False) as batch_loader:
+                    for batch_idx, (x, _, idx) in enumerate(batch_loader):
+                        x = x.to(self.device)
+                        idx = idx.to(self.device)
+                        x_bar, s, z = self(x)
 
-                # ~ y_pred = s.data.cpu().numpy().argmax(1).astype(np.float32)
+                        # ~ y_pred = s.data.cpu().numpy().argmax(1).astype(np.float32)
 
-                ############# Total loss function ###################
-                # Reconstruction loss
-                reconstr_loss = F.mse_loss(x_bar, x)
+                        ############# Total loss function ###################
+                        # Reconstruction loss
+                        reconstr_loss = F.mse_loss(x_bar, x)
 
-                # Subspace clustering loss
-                kl_loss = F.kl_div(s.log(), s_tilde[idx.type(torch.int64)])
+                        # Subspace clustering loss
+                        kl_loss = F.kl_div(
+                            s.log(), s_tilde[idx.type(torch.int64)])
 
-                # Constraints
-                loss_d1 = d_cons1(self.D)
-                loss_d2 = d_cons2(self.D, self.d, self.n_clusters)
+                        # Constraints
+                        loss_d1 = d_cons1(self.D)
+                        loss_d2 = d_cons2(self.D, self.d, self.n_clusters)
 
-                # Total_loss
-                loss = reconstr_loss + self.beta * kl_loss + loss_d1 + loss_d2
+                        # Total_loss
+                        loss = reconstr_loss + self.beta * kl_loss + loss_d1 + loss_d2
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
 
-                # Update Loss Record
-                total_reconstr_loss += reconstr_loss.item()
-                total_kl_loss += kl_loss.item()
-                total_loss_d1 += loss_d1.item()
-                total_loss_d2 += loss_d2.item()
-            # Record Loss 
-            total_reconstr_loss /= len(train_loader)
-            total_kl_loss /= len(train_loader)
-            total_loss_d1 /= len(train_loader)
-            total_loss_d2 /= len(train_loader)
-            metrics.update_loss(total_reconstr_loss=total_reconstr_loss,
-                                total_kl_loss=total_kl_loss,
-                                total_loss_d1=total_loss_d1,
-                                total_loss_d2=total_loss_d2)
+                        batch_loader.set_postfix(
+                            ordered_dict={
+                                "loss": f" {loss.item():.2e}",
+                            }
+                        )
+
+                        # Update Loss Record
+                        total_reconstr_loss += reconstr_loss.item()
+                        total_kl_loss += kl_loss.item()
+                        total_loss_d1 += loss_d1.item()
+                        total_loss_d2 += loss_d2.item()
+                # Record Loss
+                total_reconstr_loss /= len(train_loader)
+                total_kl_loss /= len(train_loader)
+                total_loss_d1 /= len(train_loader)
+                total_loss_d2 /= len(train_loader)
+                metrics.update_loss(total_reconstr_loss=total_reconstr_loss,
+                                    total_kl_loss=total_kl_loss,
+                                    total_loss_d1=total_loss_d1,
+                                    total_loss_d2=total_loss_d2)
         return y_pred, z, metrics
 
     def forward(self, x):

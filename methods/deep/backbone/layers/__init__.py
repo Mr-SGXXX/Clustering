@@ -1,1 +1,1 @@
-from MLP import build_MLP_net
+from .MLP import build_MLP_net

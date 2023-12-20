@@ -1,5 +1,5 @@
-from kmeans import KMeans
-from spectral_clustering import SpectralClustering
+from .kmeans import KMeans
+from .spectral_clustering import SpectralClustering
 
 """
 CLASSICAL_METHODS: A dict of classical clustering methods.
@@ -14,4 +14,14 @@ CLASSICAL_METHODS = {
     "KMeans": KMeans,
     # A simple implement for Spectral Clustering
     "SpectralClustering": SpectralClustering
+}
+
+"""
+CLASSICAL_METHODS_INPUT_IMG_FLAG: A dict of flags indicating whether the input data is an image.
+
+The key is the name of the method, and the value is the flag.
+"""
+CLASSICAL_METHODS_INPUT_TYPES = {
+    "KMeans": ["seq"],
+    "SpectralClustering": ["seq"]
 }

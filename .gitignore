@@ -1,2 +1,11 @@
+__pycache__
+log
+figures
+result
+weight
+data/*
+
 cfg/email.cfg
 .vscode/launch.json
+
+!data/Reuters10K
