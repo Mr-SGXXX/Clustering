@@ -1,7 +1,9 @@
 import numpy as np
 from utils import config
 
-class KMeans:
+from .base import ClassicalMethod
+
+class KMeans(ClassicalMethod):
     def __init__(self, cfg: config):
         self.k = cfg.get("global", "n_clusters")
         self.max_iterations = cfg.get("KMeans", "max_iterations")

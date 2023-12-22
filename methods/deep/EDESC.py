@@ -14,9 +14,9 @@ from utils import config
 from .backbone.EDESC_AE import EDESC_AE
 from .loss.EDESC_loss import D_constraint1, D_constraint2
 from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
+from .base import DeepMethod
 
-
-class EDESC(nn.Module):
+class EDESC(DeepMethod):
     """
     EDESC model for deep subspace clustering.
 
@@ -47,7 +47,6 @@ class EDESC(nn.Module):
     """
 
     def __init__(self, dataset, logger: Logger, cfg: config):
-        super(EDESC, self).__init__()
         self.input_dim = dataset.input_dim
         self.dataset = dataset
 

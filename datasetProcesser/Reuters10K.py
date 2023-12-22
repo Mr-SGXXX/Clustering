@@ -9,6 +9,7 @@ class Reuters10K(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
         if 'seq' not in needed_data_types:
             raise ValueError(f"Not available data type for reuters10k in {needed_data_types}")
+        self.data_type = 'seq'
         data_dir = os.path.join(cfg.get("global", "dataset_dir"), "Reuters10K")
         data_path = os.path.join(data_dir, "reutersidf10k.npy")
         if not os.path.exists(data_path):

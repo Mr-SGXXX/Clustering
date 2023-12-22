@@ -14,9 +14,11 @@ class MNIST(Dataset):
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         if 'img' in needed_data_types:
             self.data = self.data.reshape(self.data.shape[0], 1, 28, 28).astype(np.float32)
+            self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
         elif 'seq' in needed_data_types:
             self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+            self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
             raise ValueError(f"Not available data type for mnist in {needed_data_types}")

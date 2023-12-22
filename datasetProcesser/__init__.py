@@ -4,6 +4,7 @@ from .MNIST import MNIST
 # Each dataset here should be a `torch.utils.Dataset` class with following elements:
 #   label: the label of the dataset, if label is not available, set it to None, numpy.ndarray
 #   data: the data of the dataset, numpy.ndarray
+#   data_type: the type of the data, should be one of ['seq', 'img', ...], str
 #   input_dim: the input dimension of the dataset
 #   num_classes: the number of classes of the dataset
 #   output_img_flag: whether the dataset outputs a image 

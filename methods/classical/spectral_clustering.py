@@ -5,7 +5,9 @@ from sklearn.metrics import pairwise_distances
 import typing
 from utils import config
 
-class SpectralClustering:
+from .base import ClassicalMethod
+
+class SpectralClustering(ClassicalMethod):
     def __init__(self, cfg: config):
         self.n_clusters = cfg.get("global", "n_clusters")
         self.cut_type = cfg.get("SpectralClustering", "cut_type")
