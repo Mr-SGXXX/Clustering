@@ -8,6 +8,7 @@ from utils import config
 
 class CIFAR100(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        self.name = 'CIFAR100'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.CIFAR100(data_dir, train=True, download=True)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True)

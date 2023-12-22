@@ -3,6 +3,7 @@ from .seq import SEQ_DATASETS
 
 
 # Each dataset here should be a `torch.utils.Dataset` class with following elements:
+#   name: the name of the dataset, str
 #   label: the label of the dataset, if label is not available, set it to None, numpy.ndarray
 #   data: the data of the dataset, numpy.ndarray
 #   data_type: the type of the data, should be one of ['seq', 'img', ...], str

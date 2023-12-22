@@ -5,7 +5,7 @@
    ```shell
    git clone git@github.com:Mr-SGXXX/Clustering.git
    ```
-2. 
+2. After downloading the repository, you need to construct a proper python environment.I advise you to use the conda, which can easily build a nice environment without influencing your other project setting. 
 
 ## Methods List
 ### Classical Methods
@@ -57,7 +57,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Referring Code](https://github.com/XifengGuo/IDEC) | [Personal Note]()
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Referring Code](https://github.com/slim1017/VaDE) | [Personal Note]()
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Referring Code](https://github.com/boyangumn/DCN-New) | [Personal Note]()
-- [ ] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Referring Code](https://github.com/vlukiyanov/pt-dec) | [Personal Note]()
+- [ ] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Referring Code](https://github.com/piiswrong/dec/tree/master) | [Personal Note]()
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Referring Code](https://github.com/jwyang/JULE.torch) | [Personal Note]()
 
 
@@ -89,6 +89,7 @@ The possible difference reasons:
 - The results of some methods strictly depends on some weight from a excellent but rare pretrain try, which doesn't occur all the time, causing the scores are easily lower than what authors declaimed.
 - Some methods don't offer the hyper-parameter setting they used for all dataset, for these methods we use the default hyper-parameter they offered in their code or paper.
 - The public code of some methods can not be run correctly for some bugs or outdated APIs. Though we try to fix these errors, it may cause some diffence of the results.  
+- Some methods unfairly used the best epoch recognized by clustering evaluation metrics(ACC, ARI, etc) in the clustering progress, which needs ground truth information.(Early stop doesn't mean you can use unfair setting)
 - There may be some bugs in this repository which influence the score of some methods. If you find any bug, welcome to raise issues or contact me through email.
 
 The hardware environment we used as follows:

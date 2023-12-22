@@ -65,7 +65,7 @@ def main():
     elif method_flag == "deep":
         pretrain_start_time = time.time()
         method = method(dataset, logger, cfg)
-        # pretrain_features = method.pretrain()
+        pretrain_features = method.pretrain()
         train_start_time = time.time()
         pred_labels, features, metrics = method.train_model()
 

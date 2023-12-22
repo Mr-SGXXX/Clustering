@@ -8,6 +8,7 @@ from utils import config
 
 class STL10(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        self.name = 'STL10'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.STL10(data_dir, split='train', download=True)
         test_dataset = datasets.STL10(data_dir, split='test', download=True)

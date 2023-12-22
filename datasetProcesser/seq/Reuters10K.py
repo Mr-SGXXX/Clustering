@@ -7,6 +7,7 @@ from utils import config
 
 class Reuters10K(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        self.name = 'Reuters10K'
         if 'seq' not in needed_data_types:
             raise ValueError(f"Not available data type for reuters10k in {needed_data_types}")
         self.data_type = 'seq'

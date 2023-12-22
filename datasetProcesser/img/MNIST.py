@@ -8,6 +8,7 @@ from utils import config
 
 class MNIST(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        self.name = 'MNIST'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.MNIST(data_dir, train=True, download=True)
         test_dataset = datasets.MNIST(data_dir, train=False, download=True)

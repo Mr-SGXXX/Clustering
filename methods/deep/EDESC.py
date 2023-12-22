@@ -78,6 +78,22 @@ class EDESC(DeepMethod):
         self.D = Parameter(torch.Tensor(
             self.hidden_dim, self.n_clusters * self.d)).to(self.device)
 
+    def encode_dataset(self):
+        self.eval()
+        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False)
+        latent_list = []
+        assign_list = []
+        with torch.no_grad():
+            for data, _, _ in tqdm(train_loader, desc="Encoding dataset", dynamic_ncols=True, leave=False):
+                data = data.to(self.device)
+                _, q, z = self(data)
+                latent_list.append(z)
+                assign_list.append(q)
+        latent = torch.cat(latent_list, dim=0)
+        assign = torch.cat(assign_list, dim=0)
+        self.train()
+        return latent, assign
+
     def pretrain(self):
         """
         Pretrain the EDESC autoencoder model.
@@ -97,7 +113,7 @@ class EDESC(DeepMethod):
                 for batch_idx, (x, _, _) in enumerate(train_loader):
                     x = x.to(self.device)
                     optimizer.zero_grad()
-                    x_bar, z = model(x)
+                    x_bar, _ = model(x)
                     loss = F.mse_loss(x_bar, x)
                     total_loss += loss.item()
                     loss.backward()
@@ -107,8 +123,7 @@ class EDESC(DeepMethod):
                         epoch + 1, total_loss / (batch_idx + 1)))
 
         self.logger.info("Pretraining finished!")
-        _, z = model(torch.Tensor(self.dataset.data).to(self.device))
-        return z
+        return self.encode_dataset()[0]
 
     def train_model(self):
         """
@@ -120,9 +135,8 @@ class EDESC(DeepMethod):
             metrics (Metrics): Metrics object for evaluation.
 
         """
-        self.ae.load_state_dict(torch.load(
-            "weight/reuters.pkl", map_location=self.device))
-        self.eval()
+        # self.ae.load_state_dict(torch.load(
+        #     "weight/reuters.pkl", map_location=self.device))
         metrics = Metrics(self.dataset.label is not None)
         optimizer = Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(
@@ -130,9 +144,8 @@ class EDESC(DeepMethod):
         d_cons1 = D_constraint1()
         d_cons2 = D_constraint2()
 
-        data = torch.Tensor(self.dataset.data).to(self.device)
-        _, z = self.ae(data)
-        kmeans = KMeans(n_clusters=self.n_clusters)
+        z, _ = self.encode_dataset()
+        kmeans = KMeans(n_clusters=self.n_clusters, n_init=10)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
         y_pred_last = y_pred
         D = Initialization_D(z, y_pred, self.n_clusters, self.d)
@@ -142,7 +155,7 @@ class EDESC(DeepMethod):
         self.train()
         with tqdm(range(100), desc="Clustering", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
-                _, tmp_s, z = self(data)
+                z, tmp_s = self.encode_dataset()
 
                 # Update refined subspace affinity
                 tmp_s = tmp_s.data
