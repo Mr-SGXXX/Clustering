@@ -1,5 +1,6 @@
-from .Reuters10K import Reuters10K
-from .MNIST import MNIST
+from .img import IMG_DATASETS
+from .seq import SEQ_DATASETS
+
 
 # Each dataset here should be a `torch.utils.Dataset` class with following elements:
 #   label: the label of the dataset, if label is not available, set it to None, numpy.ndarray
@@ -22,6 +23,6 @@ DATASETS: The dict of datasets.
 The key is the name of the dataset, and the value is the class of the dataset.
 """
 DATASETS = {
-    "Reuters10K": Reuters10K,
-    "MNIST": MNIST
+    **IMG_DATASETS,
+    **SEQ_DATASETS,
 }

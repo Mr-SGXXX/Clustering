@@ -16,6 +16,7 @@ from .loss.EDESC_loss import D_constraint1, D_constraint2
 from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
 from .base import DeepMethod
 
+
 class EDESC(DeepMethod):
     """
     EDESC model for deep subspace clustering.
@@ -47,8 +48,8 @@ class EDESC(DeepMethod):
     """
 
     def __init__(self, dataset, logger: Logger, cfg: config):
+        super().__init__(dataset, logger, cfg)
         self.input_dim = dataset.input_dim
-        self.dataset = dataset
 
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
             self.n_clusters = dataset.num_classes
@@ -65,9 +66,6 @@ class EDESC(DeepMethod):
         self.beta = cfg.get("EDESC", "beta")
         self.lr = cfg.get("EDESC", "learn_rate")
         self.batch_size = cfg.get("EDESC", "batch_size")
-
-        self.logger = logger
-        self.device = cfg.get("global", "device")
 
         self.evaluate_scores = {"acc": [], "nmi": [], "ari": []}
         self.clustering_scores = {"sc": []}
@@ -122,8 +120,8 @@ class EDESC(DeepMethod):
             metrics (Metrics): Metrics object for evaluation.
 
         """
-        # self.ae.load_state_dict(torch.load(
-        #     "weight/reuters.pkl", map_location=self.device))
+        self.ae.load_state_dict(torch.load(
+            "weight/reuters.pkl", map_location=self.device))
         self.eval()
         metrics = Metrics(self.dataset.label is not None)
         optimizer = Adam(self.parameters(), lr=self.lr)
@@ -191,12 +189,6 @@ class EDESC(DeepMethod):
                         loss.backward()
                         optimizer.step()
 
-                        batch_loader.set_postfix(
-                            ordered_dict={
-                                "loss": f" {loss.item():.2e}",
-                            }
-                        )
-
                         # Update Loss Record
                         total_reconstr_loss += reconstr_loss.item()
                         total_kl_loss += kl_loss.item()
@@ -211,6 +203,12 @@ class EDESC(DeepMethod):
                                     total_kl_loss=total_kl_loss,
                                     total_loss_d1=total_loss_d1,
                                     total_loss_d2=total_loss_d2)
+                epoch_loader.set_postfix({
+                    "Acc": acc,
+                    "NMI": nmi,
+                    "ARI": ari,
+                    "Delta_label": delta_label
+                })
         return y_pred, z, metrics
 
     def forward(self, x):

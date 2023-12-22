@@ -1,10 +1,12 @@
 import time
+import warnings
+warnings.filterwarnings("ignore")
 
 from methods import *
 from datasetProcesser import DATASETS
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
 from metrics import evaluate
-from utils import config, email_reminder, get_logger, make_dir, get_args
+from utils import email_reminder, get_logger, make_dir, get_args
 
 
 def main():

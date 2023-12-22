@@ -6,14 +6,13 @@ import os
 
 from utils import config
 
-class MNIST(Dataset):
+class CIFAR100(Dataset):
     def __init__(self, cfg: config, needed_data_types:list):
         data_dir = cfg.get("global", "dataset_dir")
-        train_dataset = datasets.MNIST(data_dir, train=True, download=True)
-        test_dataset = datasets.MNIST(data_dir, train=False, download=True)
+        train_dataset = datasets.CIFAR100(data_dir, train=True, download=True)
+        test_dataset = datasets.CIFAR100(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         if 'img' in needed_data_types:
-            self.data = self.data.reshape(self.data.shape[0], 1, 28, 28).astype(np.float32)
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
         elif 'seq' in needed_data_types:
@@ -21,12 +20,12 @@ class MNIST(Dataset):
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
-            raise ValueError(f"Not available data type for mnist in {needed_data_types}")
+            raise ValueError(f"Not available data type for CIFAR100 in {needed_data_types}")
         self.label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
         self.label = self.label.reshape((self.label.size,))
-        
+
         self.num_classes = len(np.unique(self.label))
-    
+
     def __len__(self):
         return self.data.shape[0]
     
