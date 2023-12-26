@@ -1,11 +1,14 @@
 import time
 import warnings
+import pandas as pd
 warnings.filterwarnings("ignore")
+import os
 
 from methods import *
 from datasetProcesser import DATASETS
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
 from metrics import evaluate
+from figures import draw_charts
 from utils import email_reminder, get_logger, make_dir, get_args
 
 
@@ -56,16 +59,19 @@ def main():
 
     # the Clustering Training
     metrics = None
+    features = None
+    pretrain_features = None
+    pretrain_loss_list = None
     if method_flag == "classical":
         method = method(cfg)
         pretrain_start_time = None
         train_start_time = time.time()
-        pred_labels = method.fit(dataset.data)
+        pred_labels, features = method.fit(dataset.data)
         acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
     elif method_flag == "deep":
         pretrain_start_time = time.time()
         method = method(dataset, logger, cfg)
-        pretrain_features = method.pretrain()
+        pretrain_features, pretrain_loss_list = method.pretrain()
         train_start_time = time.time()
         pred_labels, features, metrics = method.train_model()
 
@@ -81,8 +87,23 @@ def main():
         )
     logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
     logger.info(f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
-    figure_paths = []
-
+    
+    if cfg.get("global", "save_clustering_result") == True:
+        rst_path = os.path.join(cfg.get("global", "result_dir"), f'{description}.csv')
+        df = pd.DataFrame(pred_labels, columns=['Cluster'])
+        df.to_csv(rst_path, index=True)
+    
+    figure_paths = draw_charts(
+        rst_metrics=metrics,
+        pretrain_features=pretrain_features,
+        pretrain_loss_list=pretrain_loss_list,
+        features=features,
+        pred_labels=pred_labels,
+        true_labels=dataset.label,
+        description=description,
+        cfg=cfg
+    )
+    logger.info("Figures Successfully Generated!")
     end_time = time.time()
     reminder.send_message(
         f"Experiment {description} is over.\n" +

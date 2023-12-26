@@ -105,4 +105,4 @@ def spectral_clustering(X, n_clusters, A=None, cut_type: typing.Literal["RatioCu
     kmeans.fit(normalized_eigenvectors)
 
     # Return the cluster labels
-    return kmeans.labels_
+    return kmeans.labels_, normalized_eigenvectors

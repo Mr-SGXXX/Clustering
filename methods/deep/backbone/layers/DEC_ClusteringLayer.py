@@ -26,7 +26,7 @@ class ClusteringLayer(nn.Module):
         """
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
         pred_label = kmeans.fit_predict(data.cpu().detach().numpy())
-        mu = torch.from_numpy(mu)
+        mu = torch.from_numpy(kmeans.cluster_centers_)
         self.mu.data.copy_(mu)
         return pred_label
 

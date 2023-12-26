@@ -107,6 +107,7 @@ class EDESC(DeepMethod):
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=True)
         optimizer = Adam(model.parameters(), lr=self.lr)
+        pretrain_loss_list = []
         with tqdm(range(50), desc="Pretrain AE", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
                 total_loss = 0.
@@ -121,9 +122,10 @@ class EDESC(DeepMethod):
                 if (epoch+1) % 10 == 0:
                     self.logger.info("Pretrain Epoch {} loss={:.4f}".format(
                         epoch + 1, total_loss / (batch_idx + 1)))
+                pretrain_loss_list.append(total_loss / (batch_idx + 1))
 
         self.logger.info("Pretraining finished!")
-        return self.encode_dataset()[0]
+        return self.encode_dataset()[0], pretrain_loss_list
 
     def train_model(self):
         """
@@ -138,13 +140,14 @@ class EDESC(DeepMethod):
         # self.ae.load_state_dict(torch.load(
         #     "weight/reuters.pkl", map_location=self.device))
         metrics = Metrics(self.dataset.label is not None)
-        optimizer = Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=False)
-        d_cons1 = D_constraint1()
-        d_cons2 = D_constraint2()
+        # d_cons1 = D_constraint1()
+        # d_cons2 = D_constraint2()
 
         z, _ = self.encode_dataset()
+        # data = torch.Tensor(self.dataset.data).to(self.device)
+        # x_bar, z = self.ae(data)
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=10)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
         y_pred_last = y_pred
@@ -152,9 +155,11 @@ class EDESC(DeepMethod):
         self.D.data = torch.tensor(D).to(
             torch.float32).to(self.device)
 
+        optimizer = Adam(self.parameters(), lr=self.lr)
         self.train()
         with tqdm(range(100), desc="Clustering", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
+                # _, tmp_s, z = self(data)
                 z, tmp_s = self.encode_dataset()
 
                 # Update refined subspace affinity
@@ -175,6 +180,7 @@ class EDESC(DeepMethod):
                 total_kl_loss = 0
                 total_loss_d1 = 0
                 total_loss_d2 = 0
+                total_loss = 0
                 with tqdm(train_loader, desc="Epoch {}".format(epoch), dynamic_ncols=True, leave=False) as batch_loader:
                     for batch_idx, (x, _, idx) in enumerate(batch_loader):
                         x = x.to(self.device)
@@ -189,9 +195,11 @@ class EDESC(DeepMethod):
 
                         # Subspace clustering loss
                         kl_loss = F.kl_div(
-                            s.log(), s_tilde[idx.type(torch.int64)])
+                            s.log(), s_tilde[idx])
 
                         # Constraints
+                        d_cons1 = D_constraint1()
+                        d_cons2 = D_constraint2()
                         loss_d1 = d_cons1(self.D)
                         loss_d2 = d_cons2(self.D, self.d, self.n_clusters)
 
@@ -207,22 +215,25 @@ class EDESC(DeepMethod):
                         total_kl_loss += kl_loss.item()
                         total_loss_d1 += loss_d1.item()
                         total_loss_d2 += loss_d2.item()
+                        total_loss += loss.item()
                 # Record Loss
                 total_reconstr_loss /= len(train_loader)
                 total_kl_loss /= len(train_loader)
                 total_loss_d1 /= len(train_loader)
                 total_loss_d2 /= len(train_loader)
+                total_loss /= len(train_loader)
                 metrics.update_loss(total_reconstr_loss=total_reconstr_loss,
                                     total_kl_loss=total_kl_loss,
                                     total_loss_d1=total_loss_d1,
-                                    total_loss_d2=total_loss_d2)
+                                    total_loss_d2=total_loss_d2,
+                                    total_loss=total_loss)
                 epoch_loader.set_postfix({
                     "Acc": acc,
                     "NMI": nmi,
                     "ARI": ari,
                     "Delta_label": delta_label
                 })
-        return y_pred, z, metrics
+        return y_pred, self.encode_dataset()[0], metrics
 
     def forward(self, x):
         """
@@ -254,3 +265,5 @@ class EDESC(DeepMethod):
         s = (s+eta*d) / ((eta+1)*d)
         s = (s.t() / torch.sum(s, 1)).t()
         return x_bar, s, z
+
+

@@ -32,6 +32,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [ProPos (TPAMI 2022)](https://arxiv.org/pdf/2111.11821.pdf) | [Referring Code](https://github.com/Hzzone/ProPos) | [Personal Note]()
 - [ ] [DeepDPM (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Ronen_DeepDPM_Deep_Clustering_With_an_Unknown_Number_of_Clusters_CVPR_2022_paper.pdf) | [Referring Code](https://github.com/BGU-CS-VIL/DeepDPM) | [Personal Note]()
 - [x] [EDESC (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.pdf) | [Referring Code](https://github.com/JinyuCai95/EDESC-pytorch) | [Personal Note]()
+*In the code, the author gave a pretrained weight, with it, we can gain a nice result not lower than the article for Reuters10K dataset, but pretraining from start following the code setting instead of using the pretrain weight, the score is hardl as good as what it should be, besides, the result is not stable.*
 - [ ] [VaDeSC (ICLR 2022)](https://openreview.net/pdf?id=RQ428ZptQfU) | [Referring Code](https://github.com/i6092467/vadesc) | [Personal Note]()
 - [ ] [C3-GAN (ICLR 2022)](https://openreview.net/pdf?id=XWODe7ZLn8f) | [Referring Code](https://github.com/naver-ai/c3-gan) | [Personal Note]()
 - [ ] [HC-MGAN (AAAI 2022)](https://arxiv.org/pdf/2112.14772.pdf) | [Referring Code](https://github.com/dmdmello/HC-MGAN) | [Personal Note]()
@@ -80,9 +81,9 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 
 ## Experiment Results
 ### Results Disclaimer
-All the experimental results in this repository are obtained based on the code provided in this repository. Due to factors such as experimental environment and parameter settings, these results may differ slightly from those in the original paper. We strive to ensure the accuracy of the results, but cannot guarantee exact correspondence with the original paper.
+All the experimental results you can see in this repository are obtained based on the code provided in this repository. Due to factors such as experimental environment and parameter settings, these results may differ slightly or greatly from those in the original paper. I strive to ensure the accuracy of the results, but can't guarantee exact correspondence with the original paper.
 
-The possible difference reasons:
+The possible difference reasons from my personal view:
 - The problem of clustering usually is not stable, the difference of initializing will cause significant difference of results.
 - Not all methods were orginally implemented by pytorch, besides different pytorch version may cause difference. This repository may implement the method in a different way.
 - Different hardware devices may cause some different results for their slightly different calculating process.
@@ -92,7 +93,7 @@ The possible difference reasons:
 - Some methods unfairly used the best epoch recognized by clustering evaluation metrics(ACC, ARI, etc) in the clustering progress, which needs ground truth information.(Early stop doesn't mean you can use unfair setting)
 - There may be some bugs in this repository which influence the score of some methods. If you find any bug, welcome to raise issues or contact me through email.
 
-The hardware environment we used as follows:
+The hardware environment accessible to me as follows:
 - CPU: AMD EPYC 7302 16-Core Processor
 - GPU: NVIDIA GTX 2080ti
 - Memory Size: 64GB

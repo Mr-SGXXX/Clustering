@@ -20,19 +20,19 @@ def create_layers(n_layer, dims, drop):
     decoder_layers = []
 
     for i in range(0, n_layer-1):
-        # 编码器层
+        # encoder
         encoder_layers.append(nn.Linear(dims[i], dims[i+1]))
         if i != n_layer - 2:
             encoder_layers.append(nn.ReLU())
             encoder_layers.append(nn.Dropout(drop))
     for i in range(n_layer-2, 0, -1):
-        # 解码器层
+        # decoder
         if i != 0:
             decoder_layers.append(nn.Linear(dims[i+1], dims[i]))
             decoder_layers.append(nn.ReLU())
             decoder_layers.append(nn.Dropout(drop))
 
-    # 最后一层解码器不加ReLU和Dropout
+    # No ReLU and Dropout for the last layer
     decoder_layers.append(nn.Linear(dims[1], dims[0]))
 
     return nn.Sequential(*encoder_layers), nn.Sequential(*decoder_layers)

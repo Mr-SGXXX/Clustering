@@ -10,7 +10,7 @@ class KMeans(ClassicalMethod):
         self.max_iterations = cfg.get("KMeans", "max_iterations")
 
     def fit(self, data):
-        return skKMeans(n_clusters=self.k, max_iter=self.max_iterations).fit_predict(data)
+        return skKMeans(n_clusters=self.k, max_iter=self.max_iterations).fit_predict(data), data
         # return kmeans(data, self.k, self.max_iterations)
 
 
