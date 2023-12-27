@@ -32,7 +32,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [ProPos (TPAMI 2022)](https://arxiv.org/pdf/2111.11821.pdf) | [Referring Code](https://github.com/Hzzone/ProPos) | [Personal Note]()
 - [ ] [DeepDPM (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Ronen_DeepDPM_Deep_Clustering_With_an_Unknown_Number_of_Clusters_CVPR_2022_paper.pdf) | [Referring Code](https://github.com/BGU-CS-VIL/DeepDPM) | [Personal Note]()
 - [x] [EDESC (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.pdf) | [Referring Code](https://github.com/JinyuCai95/EDESC-pytorch) | [Personal Note]()
-*In the code, the author gave a pretrained weight, with it, we can gain a nice result not lower than the article for Reuters10K dataset, but pretraining from start following the code setting instead of using the pretrain weight, the score is hardl as good as what it should be, besides, the result is not stable.*
+*In the code, the author gave a pretrained weight, with it, we can gain a nice result sometimes not lower than the article for Reuters10K dataset, but pretraining from start following the code setting instead of using the pretrain weight, the score is hardly as good as what it should be, but similar to this repositary. Besides, the result is not stable.*
 - [ ] [VaDeSC (ICLR 2022)](https://openreview.net/pdf?id=RQ428ZptQfU) | [Referring Code](https://github.com/i6092467/vadesc) | [Personal Note]()
 - [ ] [C3-GAN (ICLR 2022)](https://openreview.net/pdf?id=XWODe7ZLn8f) | [Referring Code](https://github.com/naver-ai/c3-gan) | [Personal Note]()
 - [ ] [HC-MGAN (AAAI 2022)](https://arxiv.org/pdf/2112.14772.pdf) | [Referring Code](https://github.com/dmdmello/HC-MGAN) | [Personal Note]()
@@ -64,15 +64,15 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 
 ## Dataset
 ### Image
-- [x] MNIST:
+- [x] MNIST
 
-- [ ] Fashion MNIST:
+- [ ] Fashion MNIST
 
-- [ ] CIFAR-10:
+- [ ] CIFAR-10
 
-- [ ] CIFAR-100:
+- [ ] CIFAR-100
 
-- [ ] STL-10:
+- [ ] STL-10
 
 ### Text
 - [x] Reuters-10K:

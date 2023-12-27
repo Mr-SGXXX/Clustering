@@ -138,7 +138,6 @@ def gen_pretrain_loss_chart(loss_list, path, figsize=(10, 6)):
     plt.figure(figsize=figsize)
     plt.plot(epochs, loss_list, color='steelblue', linewidth=2)
     plt.xlim(1, len(loss_list))
-    plt.ylim(0, max(loss_list))
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
     plt.xlabel("Epoch", fontsize=12)
@@ -153,7 +152,6 @@ def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     for i in range(len(losses_list)):
         plt.plot(epochs, losses_list[i], color=colors[i], linewidth=2, label=loss_names[i])
     plt.xlim(1, len(losses_list[0]))
-    plt.ylim(0, max(losses_list[0]))
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Clustering Loss Chart", fontsize=14)
@@ -177,7 +175,8 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
         ax2.set_ylabel("Evaluation Metric", color='black', fontsize=12)
     else:
         ax2.plot(epochs, score_dict['SC'], color='brown', linewidth=1, label='SC')
-    plt.legend(loc='best')
+    ax1.legend(loc='best')
+    ax2.legend(loc='best')
     plt.title("Clustering Loss and Evaluation Metrics Chart", fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.savefig(path)

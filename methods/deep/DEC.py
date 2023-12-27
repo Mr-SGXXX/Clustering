@@ -1,7 +1,6 @@
 from logging import Logger
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch import optim
 from tqdm import tqdm
@@ -13,6 +12,7 @@ from utils import config
 
 from .base import DeepMethod
 from .backbone.DEC_AE import DEC_AE
+# from .backbone.EDESC_AE import EDESC_AE as DEC_AE
 from .backbone.layers.DEC_ClusteringLayer import ClusteringLayer
 from .utils.DEC_utils import target_distribution
 import torch
@@ -36,8 +36,10 @@ class DEC(DeepMethod):
         self.batch_size = cfg.get("DEC", "batch_size")
         self.pretrain_lr = cfg.get("DEC", "pretrain_learn_rate")
         self.lr = cfg.get("DEC", "learn_rate")
+        self.momentum = cfg.get("DEC", "momentum")
         self.train_max_epoch = cfg.get("DEC", "train_max_epoch")
         self.weight_dir = cfg.get("global", "weight_dir")
+        self.tol = cfg.get("DEC", "tol")
 
         self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
         self.clustering_layer = ClusteringLayer(self.n_clusters, self.hidden_dim, self.alpha).to(self.device)
@@ -72,17 +74,18 @@ class DEC(DeepMethod):
         else:
             pretrain_loss_list = []
             self.logger.info("Pretrained weight not found, Pretraining...")
-            optimizer = optim.Adam(self.ae.parameters(), lr=self.pretrain_lr)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=2000, gamma=0.1)
+            # Pretrain in greedy layer-wise way
             train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
             with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                 for i in level_loader:
-                    with tqdm(range(5000), desc="Period1 Epoch", dynamic_ncols=True, leave=False) as epoch_loader:
+                    optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
+                    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
+                    with tqdm(range(50000), desc="Period1 Epoch", dynamic_ncols=True, leave=False) as epoch_loader:
                         for it in epoch_loader:
                             total_loss = 0
                             for data, _, _ in train_loader:
                                 data = data.to(self.device)
-                                x_bar, _ = self.ae(data)
+                                x_bar, _ = self.ae(data, level=i)
                                 loss = nn.MSELoss()(x_bar, data)
                                 optimizer.zero_grad()
                                 loss.backward()
@@ -91,22 +94,12 @@ class DEC(DeepMethod):
                             scheduler.step()
                             pretrain_loss_list.append(total_loss / len(train_loader))
                             epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
-                        
-                    for j in range(len(self.ae.encoder)):
-                        if j > i * 3:
-                            break
-                        self.ae.encoder[j].requires_grad_(False)
-                        self.ae.decoder[-(j+1)].requires_grad_(False)
-
+                    self.ae.freeze_level(i)
             
-            optimizer = optim.Adam(self.ae.parameters(), lr=self.pretrain_lr)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=2000, gamma=0.1)
-            for param in self.ae.parameters():
-                param.requires_grad_(True)
-            for module in self.ae.modules():
-                if isinstance(module, nn.Dropout):
-                    module.p = 0.0
-            with tqdm(range(10000), desc="Pretrain Stacked AE Period2", dynamic_ncols=True, leave=False) as epoch_loader:
+            optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
+            self.ae.defreeze()
+            with tqdm(range(100000), desc="Pretrain Stacked AE Period2", dynamic_ncols=True, leave=False) as epoch_loader:
                 for it in epoch_loader:
                     total_loss = 0
                     for data, _, _ in train_loader:
@@ -120,14 +113,33 @@ class DEC(DeepMethod):
                     scheduler.step()
                     pretrain_loss_list.append(total_loss / len(train_loader))
                     epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+            
+            # Pretrain in a quick way 
+            # optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
+            # with tqdm(range(50), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
+            #     for it in epoch_loader:
+            #         total_loss = 0
+            #         for data, _, _ in train_loader:
+            #             data = data.to(self.device)
+            #             x_bar, _ = self.ae(data)
+            #             loss = nn.MSELoss()(x_bar, data)
+            #             total_loss += loss.item()
+            #             optimizer.zero_grad()
+            #             loss.backward()
+            #             optimizer.step()
+            #         pretrain_loss_list.append(total_loss / len(train_loader))
+            #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+
             torch.save(self.ae.state_dict(), weight_path)
             self.logger.info("Pretraining finished!")
 
         return self.encode_dataset()[0], pretrain_loss_list
 
     def train_model(self):
+        es_count = 0
         metrics = Metrics(self.dataset.label is not None)
-        optimizer = Adam(self.parameters(), lr=self.lr)
+        optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
+        # optimizer = optim.Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -157,8 +169,16 @@ class DEC(DeepMethod):
                 metrics.update_loss(total_loss=total_loss)
                 if epoch % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
-                if delta_label < 1e-5:
+                if delta_label < self.tol and es_count > 5:
                     self.logger.info(f"Early stopping at epoch {epoch}")
                     break
+                else:
+                    es_count += 1
+                epoch_loader.set_postfix({
+                    "Acc": acc,
+                    "NMI": nmi,
+                    "ARI": ari,
+                    "Delta_label": delta_label
+                })
         return y_pred, self.encode_dataset()[0], metrics
 

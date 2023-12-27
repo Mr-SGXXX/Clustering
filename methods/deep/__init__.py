@@ -1,5 +1,6 @@
 from .EDESC import EDESC
 from .DEC import DEC
+from .IDEC import IDEC
 
 """
 The Dictionary of Deep clustering methods
@@ -15,6 +16,7 @@ DEEP_METHODS = {
     # Link: https://openaccess.thecvf.com/content/CVPR2022/html/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.html
     "EDESC": EDESC,
     "DEC": DEC,
+    "IDEC": IDEC,
 }
 
 """
@@ -26,4 +28,5 @@ such as "seq" for sequential data, "img" for image data, "tab" for tabular data,
 DEEP_METHODS_INPUT_TYPES = {
     "EDESC": ["seq", "img"],
     "DEC": ["seq", "img"],
+    "IDEC": ["seq", "img"],
 }
