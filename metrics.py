@@ -3,6 +3,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from logging import Logger
+import torch
 
 
 class Metrics:

@@ -19,7 +19,7 @@ CLASSICAL_METHODS = {
 """
 CLASSICAL_METHODS_INPUT_IMG_FLAG: A dict of flags indicating whether the input data is an image.
 
-The key is the name of the method, and the value is the flag.
+The key is the name of the method, and the value is the flag, and the flag means what the method can directly accept.
 """
 CLASSICAL_METHODS_INPUT_TYPES = {
     "KMeans": ["seq"],

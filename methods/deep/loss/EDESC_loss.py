@@ -21,7 +21,7 @@ class D_constraint2(torch.nn.Module):
         super(D_constraint2, self).__init__()
 
     def forward(self, d, dim,n_clusters):
-        S = torch.ones(d.shape[1],d.shape[1]).cuda()
+        S = torch.ones(d.shape[1],d.shape[1]).to(d.device)
         zero = torch.zeros(dim, dim)
         for i in range(n_clusters):
             S[i*dim:(i+1)*dim, i*dim:(i+1)*dim] = zero

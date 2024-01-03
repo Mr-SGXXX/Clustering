@@ -1,7 +1,6 @@
 from logging import Logger
 import torch
 import torch.nn as nn
-from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch import optim
 from tqdm import tqdm
@@ -41,6 +40,7 @@ class IDEC(DeepMethod):
         self.momentum = cfg.get("IDEC", "momentum")
         self.train_max_epoch = cfg.get("IDEC", "train_max_epoch")
         self.weight_dir = cfg.get("global", "weight_dir")
+        self.tol = cfg.get("DEC", "tol")
 
         self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
         self.clustering_layer = ClusteringLayer(self.n_clusters, self.hidden_dim, self.alpha).to(self.device)
@@ -67,8 +67,15 @@ class IDEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain.pth")
-        if os.path.exists(weight_path):
+        weight_path = os.path.join(self.weight_dir, f"IDEC_{self.dataset.name}_pretrain.pth")
+        if os.path.exists(weight_path) and not self.cfg.get("global", "use_pretrain"):
+            count = 0
+            weight_path = os.path.join(self.weight_dir, f"IDEC_{self.dataset.name}_pretrain_{count}.pth")
+            while os.path.exists(weight_path):
+                count += 1
+                weight_path = os.path.join(self.weight_dir, f"IDEC_{self.dataset.name}_pretrain_{count}.pth")
+            
+        if os.path.exists(weight_path) and self.cfg.get("global", "use_pretrain"):
             self.logger.info("Pretrained weight found, Loading pretrained model...")
             self.ae.load_state_dict(torch.load(weight_path))
             pretrain_loss_list = []
@@ -76,11 +83,11 @@ class IDEC(DeepMethod):
             pretrain_loss_list = []
             self.logger.info("Pretrained weight not found, Pretraining...")
             # Pretrain in greedy layer-wise way
-            optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
             train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
             with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                 for i in level_loader:
+                    optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
+                    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
                     with tqdm(range(50000), desc="Period1 Epoch", dynamic_ncols=True, leave=False) as epoch_loader:
                         for it in epoch_loader:
                             total_loss = 0
@@ -95,6 +102,8 @@ class IDEC(DeepMethod):
                             scheduler.step()
                             pretrain_loss_list.append(total_loss / len(train_loader))
                             epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                            if it % 1000 == 0:
+                                self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
                     self.ae.freeze_level(i)
             
             optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -114,10 +123,13 @@ class IDEC(DeepMethod):
                     scheduler.step()
                     pretrain_loss_list.append(total_loss / len(train_loader))
                     epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                    if it % 1000 == 0:
+                        self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
             
             # Pretrain in a quick way 
+                    
             # optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
-            # with tqdm(range(50), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
+            # with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
             #     for it in epoch_loader:
             #         total_loss = 0
             #         for data, _, _ in train_loader:
@@ -131,7 +143,7 @@ class IDEC(DeepMethod):
             #         pretrain_loss_list.append(total_loss / len(train_loader))
             #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
 
-            # torch.save(self.ae.state_dict(), weight_path)
+            torch.save(self.ae.state_dict(), weight_path)
             self.logger.info("Pretraining finished!")
 
         return self.encode_dataset()[0], pretrain_loss_list

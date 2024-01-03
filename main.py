@@ -30,50 +30,52 @@ def main():
     )
     reminder = email_reminder(
         cfg.get("global", "email_cfg_path"), logger=logger)
+    try:
+        # Select the method
+        method = cfg.get("global", "method_name")
+        if method in METHODS_INPUT_TYPES:
+            method_input_types = METHODS_INPUT_TYPES[method]
+        else:
+            raise NotImplementedError(
+                f"Method {method} not included in the `METHODS_INPUT_IMG_FLAG`")
+        if method in CLASSICAL_METHODS:
+            method = CLASSICAL_METHODS[method]
+            method_flag = "classical"
+        elif method in DEEP_METHODS:
+            method = DEEP_METHODS[method]
+            method_flag = "deep"
+        else:
+            raise NotImplementedError(
+                f"Method {method} not included in the `CLASSICAL_METHODS` or `DEEP_METHODS`")
 
-    # Select the method
-    method = cfg.get("global", "method_name")
-    if method in METHODS_INPUT_TYPES:
-        method_input_types = METHODS_INPUT_TYPES[method]
-    else:
-        raise NotImplementedError(
-            f"Method {method} not included in the `METHODS_INPUT_IMG_FLAG`")
-    if method in CLASSICAL_METHODS:
-        method = CLASSICAL_METHODS[method]
-        method_flag = "classical"
-    elif method in DEEP_METHODS:
-        method = DEEP_METHODS[method]
-        method_flag = "deep"
-    else:
-        raise NotImplementedError(
-            f"Method {method} not included in the `CLASSICAL_METHODS` or `DEEP_METHODS`")
+        # the Dataset Loading
+        dataset = cfg.get("global", "dataset")
+        if dataset in DATASETS:
+            dataset = DATASETS[dataset](cfg, method_input_types)
+        else:
+            raise NotImplementedError(
+                f"Dataset {dataset} not included in the `DATASETS`")
+        logger.info("Dataset Init Over!")
 
-    # the Dataset Loading
-    dataset = cfg.get("global", "dataset")
-    if dataset in DATASETS:
-        dataset = DATASETS[dataset](cfg, method_input_types)
-    else:
-        raise NotImplementedError(
-            f"Dataset {dataset} not included in the `DATASETS`")
-    logger.info("Dataset Init Over!")
-
-    # the Clustering Training
-    metrics = None
-    features = None
-    pretrain_features = None
-    pretrain_loss_list = None
-    if method_flag == "classical":
-        method = method(cfg)
-        pretrain_start_time = None
-        train_start_time = time.time()
-        pred_labels, features = method.fit(dataset.data)
-        acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
-    elif method_flag == "deep":
-        pretrain_start_time = time.time()
-        method = method(dataset, logger, cfg)
-        pretrain_features, pretrain_loss_list = method.pretrain()
-        train_start_time = time.time()
-        pred_labels, features, metrics = method.train_model()
+        # the Clustering Training
+        metrics = None
+        features = None
+        pretrain_features = None
+        pretrain_loss_list = None
+        if method_flag == "classical":
+            method = method(cfg)
+            pretrain_start_time = None
+            train_start_time = time.time()
+            pred_labels, features = method.fit(dataset.data)
+            acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
+        elif method_flag == "deep":
+            pretrain_start_time = time.time()
+            method = method(dataset, logger, cfg)
+            pretrain_features, pretrain_loss_list = method.pretrain()
+            train_start_time = time.time()
+            pred_labels, features, metrics = method.train_model()
+    except Exception as e:
+        logger.info(f"Experiment Going Wrong:\n {e}")
 
     train_end_time = time.time()
 
@@ -110,7 +112,7 @@ def main():
         f"Method: {cfg.get('global', 'method_name')}\n" +
         f"Dataset: {cfg.get('global', 'dataset')}\n" +
         f"Total time: {end_time - start_time:.2f}s\n" +
-        f"Pretrain time: {pretrain_start_time - start_time:.2f}s\n" if pretrain_start_time is not None else "" +
+        (f"Pretrain time: {pretrain_start_time - start_time:.2f}s\n" if pretrain_start_time is not None else "") +
         f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
         "\n\n\n\n" + str(cfg),
         f'Experiment "{description}" is Successfully Over',

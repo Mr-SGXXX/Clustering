@@ -171,7 +171,7 @@ class EDESC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.data.cpu().numpy(),
+                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.detach().cpu().numpy(),
                                                           y_true=self.dataset.label)
                 if (epoch+1) % 10 == 0:
                     self.logger.info(

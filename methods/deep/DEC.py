@@ -67,7 +67,14 @@ class DEC(DeepMethod):
 
     def pretrain(self):
         weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain.pth")
-        if os.path.exists(weight_path):
+        if os.path.exists(weight_path) and not self.cfg.get("global", "use_pretrain"):
+            count = 0
+            weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain_{count}.pth")
+            while os.path.exists(weight_path):
+                count += 1
+                weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain_{count}.pth")
+            
+        if os.path.exists(weight_path) and self.cfg.get("global", "use_pretrain"):
             self.logger.info("Pretrained weight found, Loading pretrained model...")
             self.ae.load_state_dict(torch.load(weight_path))
             pretrain_loss_list = []
@@ -94,6 +101,8 @@ class DEC(DeepMethod):
                             scheduler.step()
                             pretrain_loss_list.append(total_loss / len(train_loader))
                             epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                            if it % 1000 == 0:
+                                self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
                     self.ae.freeze_level(i)
             
             optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -113,10 +122,13 @@ class DEC(DeepMethod):
                     scheduler.step()
                     pretrain_loss_list.append(total_loss / len(train_loader))
                     epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                    if it % 1000 == 0:
+                        self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
             
             # Pretrain in a quick way 
+
             # optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
-            # with tqdm(range(50), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
+            # with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
             #     for it in epoch_loader:
             #         total_loss = 0
             #         for data, _, _ in train_loader:

@@ -97,12 +97,13 @@ class config:
     def __str__(self) -> str:
         rst_str = "Config Setting:\n"
         for section in self.cfg.sections():
-            rst_str += f'[{section}]\n'
-            for option in self.cfg.options(section):
-                if "pwd" not in option and "password" not in option:
-                    value = self.cfg.get(section, option)
-                    rst_str += f'{option}: {value}\n'
-            rst_str += "\n"
+            if section == "global" or section == self.get("global", "method_name") or section == self.get("global", "dataset_name"):
+                rst_str += f'[{section}]\n'
+                for option in self.cfg.options(section):
+                    if "pwd" not in option and "password" not in option:
+                        value = self.cfg.get(section, option)
+                        rst_str += f'{option}: {value}\n'
+                rst_str += "\n"
         return rst_str
 
 def get_args():

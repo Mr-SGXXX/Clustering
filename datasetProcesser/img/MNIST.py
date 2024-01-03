@@ -4,6 +4,7 @@ import torchvision.datasets as datasets
 import numpy as np
 import os
 
+from .utils import ResNet50Extractor
 from utils import config
 
 class MNIST(Dataset):
@@ -14,11 +15,18 @@ class MNIST(Dataset):
         test_dataset = datasets.MNIST(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         if 'img' in needed_data_types:
-            self.data = self.data.reshape(self.data.shape[0], 1, 28, 28).astype(np.float32)
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
         elif 'seq' in needed_data_types:
-            self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+            if cfg.get("MNIST", "img2seq_method") == 'flatten':
+                self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+            elif cfg.get("MNIST", "img2seq_method") == 'resnet50':
+                data_dir = os.path.join(data_dir, 'MNIST')
+                if os.path.exists(os.path.join(data_dir, 'MNIST_resnet50.npy')):
+                    self.data = np.load(os.path.join(data_dir, 'MNIST_resnet50.npy'))
+                else:
+                    self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
+                    np.save(os.path.join(data_dir, 'MNIST_resnet50.npy'), self.data)
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
