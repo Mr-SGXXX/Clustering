@@ -169,8 +169,7 @@ class IDEC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.data.cpu().numpy(),
-                                                          y_true=self.dataset.label)
+                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     data = data.to(self.device)
                     x_bar, q, z = self(data)

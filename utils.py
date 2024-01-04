@@ -95,14 +95,14 @@ class config:
         return process(str_data)
     
     def __str__(self) -> str:
-        rst_str = "Config Setting:\n"
+        rst_str = "Config Setting:\n\n"
         for section in self.cfg.sections():
-            if section == "global" or section == self.get("global", "method_name") or section == self.get("global", "dataset_name"):
+            if section == "global" or section == self.get("global", "method_name") or section == self.get("global", "dataset"):
                 rst_str += f'[{section}]\n'
                 for option in self.cfg.options(section):
                     if "pwd" not in option and "password" not in option:
                         value = self.cfg.get(section, option)
-                        rst_str += f'{option}: {value}\n'
+                        rst_str += f'{option}:\t{value}\n'
                 rst_str += "\n"
         return rst_str
 
@@ -224,6 +224,8 @@ class email_reminder:
                 message.attach(part_text)
                 if type(attachs) is list or type(attachs) is tuple:
                     for attach in attachs:
+                        if not os.path.exists(attach):
+                            continue
                         assert os.path.isfile(attach), "The Value Of The Attachs Must Be File Path Or List Of File Paths!"
                         if os.path.getsize(attach) > self.max_size_mb and self.logger is not None:
                             self.logger.info(f'[Email Reminder] ERROR During Sending Email: File {attach} Is Too Large!')
@@ -234,8 +236,9 @@ class email_reminder:
                             part_attach.add_header('Content-Disposition', 'attachment', filename=os.path.split(attach)[1])
                             message.attach(part_attach)
                 elif type(attachs) is str and os.path.isfile(attachs):
-                    if os.path.getsize(attachs) > self.max_size_mb and self.logger is not None:
-                        self.logger.info(f'[Email Reminder] ERROR During Sending Email: File {attachs} Is Too Large!')
+                    if os.path.getsize(attachs) > self.max_size_mb:
+                        if self.logger is not None:
+                            self.logger.info(f'[Email Reminder] ERROR During Sending Email: File {attachs} Is Too Large! Make sure the file size is less than {self.max_size_mb} MB!')
                         part_attach = MIMEText(f"\nFile {os.path.split(attachs)[1]} Is Too Large! Attachment Uploading Denied!", 'plain', 'utf-8')
                         message.attach(part_attach)
                     else:

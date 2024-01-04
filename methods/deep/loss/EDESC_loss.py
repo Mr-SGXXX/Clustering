@@ -10,7 +10,7 @@ class D_constraint1(torch.nn.Module):
         super(D_constraint1, self).__init__()
 
     def forward(self, d):
-        I = torch.eye(d.shape[1]).cuda()
+        I = torch.eye(d.shape[1]).to(d.device)
         loss_d1_constraint = torch.norm(torch.mm(d.t(),d) * I - I)
         return 	1e-3 * loss_d1_constraint
 
@@ -20,7 +20,7 @@ class D_constraint2(torch.nn.Module):
     def __init__(self):
         super(D_constraint2, self).__init__()
 
-    def forward(self, d, dim,n_clusters):
+    def forward(self, d, dim, n_clusters):
         S = torch.ones(d.shape[1],d.shape[1]).to(d.device)
         zero = torch.zeros(dim, dim)
         for i in range(n_clusters):

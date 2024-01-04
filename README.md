@@ -56,14 +56,14 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [SpectralNet (ICLR 2018)](https://openreview.net/pdf?id=HJ_aoCyRZ) | [Referring Code](https://github.com/shaham-lab/SpectralNet) 
 - [ ] [DSC-Nets (NIPS 2017)](http://papers.neurips.cc/paper/6608-deep-subspace-clustering-networks.pdf) | [Referring Code](https://github.com/panji1990/Deep-subspace-clustering-networks)
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Referring Code](https://arxiv.org/pdf/1704.06327.pdf) 
-- [ ] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Referring Code](https://github.com/XifengGuo/IDEC) 
+- [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Referring Code](https://github.com/XifengGuo/IDEC) 
   
-*In this method, most codes are the same as DEC, except the clustering progress. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering progress. *
+*In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process.*
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Referring Code](https://github.com/slim1017/VaDE) 
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Referring Code](https://github.com/boyangumn/DCN-New) 
 - [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Referring Code](https://github.com/piiswrong/dec/tree/master) 
 
-*In this method, the pretrain progress is the most important part, whether the features are learned well by pretraining will lead to whether the result is good. With a original greedy layer-wise pretraining in DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
+*In this method, the pretrain process is the most important part, whether the features are learned well by pretraining will lead to whether the result is good. With a original greedy layer-wise pretraining in DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Referring Code](https://github.com/jwyang/JULE.torch)
 
 
@@ -95,7 +95,7 @@ The possible difference reasons from my personal view:
 - The results of some methods strictly depends on some weight from a excellent but rare pretrain try, which doesn't occur all the time, causing the scores are easily lower than what authors declaimed.
 - Some methods don't offer the hyper-parameter setting they used for all dataset, for these methods we use the default hyper-parameter they offered in their code or paper.
 - The public code of some methods can not be run correctly for some bugs or outdated APIs. Though we try to fix these errors, it may cause some diffence of the results.  
-- Some methods unfairly used the best epoch recognized by clustering evaluation metrics(ACC, ARI, etc) in the clustering progress, which needs ground truth information.(Early stop doesn't mean you can use unfair setting)
+- Some methods unfairly used the best epoch recognized by clustering evaluation metrics(ACC, ARI, etc) in the clustering process, which needs ground truth information.(Early stop doesn't mean you can use unfair setting)
 - There may be some bugs in this repository which influence the score of some methods. If you find any bug, welcome to raise issues or contact me through email.
 
 The hardware environment accessible to me as follows:

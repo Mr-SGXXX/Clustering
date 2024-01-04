@@ -1,15 +1,16 @@
 import numpy as np
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score, homogeneity_score, completeness_score
-from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.metrics import silhouette_score as sklearn_silhouette_score
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from logging import Logger
 import torch
+from tqdm import tqdm
 
 
 class Metrics:
     """
     Metrics for clustering performance evaluation.
-    
+
     Args:
         with_ground_true (bool, optional): Whether to use ground truth for evaluation. Defaults to True.
 
@@ -20,6 +21,7 @@ class Metrics:
         min: Get the min value of each metric.
         avg: Get the average value of each metric.
     """
+
     def __init__(self, with_ground_true=True):
         self.ACC = AverageMeter("ACC")
         self.NMI = AverageMeter("NMI")
@@ -28,9 +30,9 @@ class Metrics:
         self.COMP = AverageMeter("COMP")
         self.SC = AverageMeter("SC")
         self.Loss = {}
-        
+
         self.with_ground_true = with_ground_true
-    
+
     def update_loss(self, **kwargs):
         for key in kwargs.keys():
             if key not in self.Loss:
@@ -38,7 +40,7 @@ class Metrics:
             self.Loss[key].update(kwargs[key])
 
     def update(self, y_pred, features, y_true=None):
-        assert type(features) is np.ndarray
+        assert type(features) is np.ndarray or type(features) is torch.Tensor
         sc = clusters_scores(y_pred, features)
         self.SC.update(sc)
         if self.with_ground_true == True:
@@ -53,17 +55,17 @@ class Metrics:
             return (sc,), (acc, nmi, ari, homo, comp)
         else:
             return (sc,)
-        
+
     def max(self):
         return (self.SC.max,), (self.ACC.max, self.NMI.max, self.ARI.max, self.HOMO.max, self.COMP.max)
-    
+
     def min(self):
         return (self.SC.min,), (self.ACC.min, self.NMI.min, self.ARI.min, self.HOMO.min, self.COMP.min)
-    
+
     def avg(self):
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
-    
-    def save_rst(self, logger:Logger):
+
+    def save_rst(self, logger: Logger):
         logger.info(
             f"Clustering Over!\n" +
             f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" +
@@ -120,11 +122,12 @@ def cluster_acc(y_true, y_pred):
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
 
-    #from sklearn.utils.linear_assignment_ import linear_assignment
+    # from sklearn.utils.linear_assignment_ import linear_assignment
     ind = linear_assignment(w.max() - w)
     ind = np.array((ind[0], ind[1])).T
     # pdb.set_trace()
     return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
+
 
 def evaluate(y_pred, y_true):
     """
@@ -137,12 +140,13 @@ def evaluate(y_pred, y_true):
     assert y_true is not None, "y_true is necessary!"
     y_true = y_true.astype(np.int64)
     assert y_pred.size == y_true.size
-    acc= cluster_acc(y_true, y_pred)
+    acc = cluster_acc(y_true, y_pred)
     nmi = normalized_mutual_info_score(y_true, y_pred)
     ari = adjusted_rand_score(y_true, y_pred)
     homo = homogeneity_score(y_true, y_pred)
     comp = completeness_score(y_true, y_pred)
     return acc, nmi, ari, homo, comp
+
 
 def clusters_scores(y_pred, features):
     """
@@ -153,9 +157,99 @@ def clusters_scores(y_pred, features):
     """
     assert y_pred is not None, "y_pred is necessary!"
     assert features is not None, "When ground truth is not available, hidden feature is necessary!"
-    assert type(features) is np.ndarray, "features should be of type np.ndarray"
+    assert type(features) is np.ndarray or type(
+        features) is torch.Tensor, "features should be of type np.ndarray or torch.Tensor"
     if len(set(y_pred)) == 1:
         sc = -1.0
     else:
-        sc = silhouette_score(features, y_pred)
+        if type(features) is np.ndarray:
+            sc = sklearn_silhouette_score(features, y_pred)
+        elif type(features) is torch.Tensor:
+            sc = silhouette_score(features, y_pred)
     return sc
+
+
+def silhouette_score(X, labels, metric='euclidean'):
+    """
+    Compute the silhouette score in a vectorized way using PyTorch.
+
+    Args:
+    X (Tensor): Data points, size (n_samples, n_features)
+    labels (Tensor): Cluster labels for each point, size (n_samples)
+    metric (str): Metric used for distance computation, default is 'euclidean'
+
+    Returns:
+    float: Silhouette Score
+    """
+    # Convert labels to tensor if they are not
+    if not isinstance(labels, torch.Tensor):
+        labels = torch.tensor(labels, dtype=torch.int64)
+
+    # Unique labels
+    unique_labels = torch.unique(labels)
+
+    # Initialize distances
+    n = X.size(0)
+    a = torch.zeros(n)
+    b = torch.full((n,), float('inf'))
+
+    # Calculate pairwise distance
+    if metric == 'euclidean':
+        dist_matrix = batched_cdist(X)
+    else:
+        raise NotImplementedError(f"Metric {metric} is not implemented.")
+
+    # Compute intra-cluster distances (a)
+    with tqdm(unique_labels, desc="Computing intra-cluster distances", dynamic_ncols=True, leave=False) as t:
+        for label in t:
+            mask = labels == label
+            intra_cluster_distances = dist_matrix[mask][:, mask]
+            sum_distances = torch.sum(intra_cluster_distances, dim=1)
+            count = mask.sum() - 1  # Exclude the point itself
+            a[mask] = sum_distances / count
+
+    # Compute nearest cluster distance (b)
+    with tqdm(unique_labels, desc="Computing inter-cluster distances", dynamic_ncols=True, leave=False) as t:
+        for label in t:
+            mask = labels == label
+            for other_label in unique_labels:
+                if label != other_label:
+                    other_mask = labels == other_label
+                    inter_cluster_distances = dist_matrix[mask][:, other_mask]
+                    if inter_cluster_distances.nelement() != 0:
+                        min_distances = torch.min(
+                            inter_cluster_distances, dim=1)[0]
+                        b[mask] = torch.min(b[mask], min_distances)
+
+    # Handle clusters with single elements
+    a[a == 0] = b[a == 0]
+
+    # Silhouette values
+    s = (b - a) / torch.max(a, b)
+
+    # Average over all points
+    return s.mean().item()
+
+
+def batched_cdist(X, batch_size=2048):
+    """
+    Compute the pairwise distance matrix in batches to reduce memory usage.
+
+    Args:
+    X (Tensor): Data points, size (n_samples, n_features)
+    batch_size (int): The size of each batch for computation
+
+    Returns:
+    Tensor: Pairwise distance matrix
+    """
+    n = X.size(0)
+    dist_matrix = torch.zeros((n, n), device='cpu')
+
+    with tqdm(range(0, n, batch_size), desc="Computing pairwise distance", dynamic_ncols=True, leave=False) as t:
+        for i in t:
+            end_i = min(i + batch_size, n)
+            for j in range(0, n, batch_size):
+                end_j = min(j + batch_size, n)
+                dist_matrix[i:end_i, j:end_j] = torch.cdist(
+                    X[i:end_i], X[j:end_j]).to("cpu")
+    return dist_matrix

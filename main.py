@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 warnings.filterwarnings("ignore")
 import os
+import traceback
 
 from methods import *
 from datasetProcesser import DATASETS
@@ -74,50 +75,61 @@ def main():
             pretrain_features, pretrain_loss_list = method.pretrain()
             train_start_time = time.time()
             pred_labels, features, metrics = method.train_model()
-    except Exception as e:
-        logger.info(f"Experiment Going Wrong:\n {e}")
 
-    train_end_time = time.time()
+        train_end_time = time.time()
 
-    # TODO: draw figures and save the results
-    if metrics is not None:
-        metrics.save_rst(logger)
-    else:
-        logger.info(
-            f"Clustering Over!\n" +
-            f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}" 
+        # TODO: draw figures and save the results
+        if metrics is not None:
+            metrics.save_rst(logger)
+        else:
+            logger.info(
+                f"Clustering Over!\n" +
+                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}" 
+            )
+        logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
+        logger.info(f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
+        
+        if cfg.get("global", "save_clustering_result") == True:
+            rst_path = os.path.join(cfg.get("global", "result_dir"), f'{description}.csv')
+            df = pd.DataFrame(pred_labels, columns=['Cluster'])
+            df.to_csv(rst_path, index=True)
+    
+        figure_paths = draw_charts(
+            rst_metrics=metrics,
+            pretrain_features=pretrain_features,
+            pretrain_loss_list=pretrain_loss_list,
+            features=features,
+            pred_labels=pred_labels,
+            true_labels=dataset.label,
+            description=description,
+            cfg=cfg
         )
-    logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
-    logger.info(f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
-    
-    if cfg.get("global", "save_clustering_result") == True:
-        rst_path = os.path.join(cfg.get("global", "result_dir"), f'{description}.csv')
-        df = pd.DataFrame(pred_labels, columns=['Cluster'])
-        df.to_csv(rst_path, index=True)
-    
-    figure_paths = draw_charts(
-        rst_metrics=metrics,
-        pretrain_features=pretrain_features,
-        pretrain_loss_list=pretrain_loss_list,
-        features=features,
-        pred_labels=pred_labels,
-        true_labels=dataset.label,
-        description=description,
-        cfg=cfg
-    )
-    logger.info("Figures Successfully Generated!")
-    end_time = time.time()
-    reminder.send_message(
-        f"Experiment {description} is over.\n" +
-        f"Method: {cfg.get('global', 'method_name')}\n" +
-        f"Dataset: {cfg.get('global', 'dataset')}\n" +
-        f"Total time: {end_time - start_time:.2f}s\n" +
-        (f"Pretrain time: {pretrain_start_time - start_time:.2f}s\n" if pretrain_start_time is not None else "") +
-        f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
-        "\n\n\n\n" + str(cfg),
-        f'Experiment "{description}" is Successfully Over',
-        (log_path, *figure_paths),
-    )
+        logger.info("Figures Successfully Generated!")
+        end_time = time.time()
+        reminder.send_message(
+            f"Experiment {description} is over.\n" +
+            f"Method: {cfg.get('global', 'method_name')}\n" +
+            f"Dataset: {cfg.get('global', 'dataset')}\n" +
+            f"Total time: {end_time - start_time:.2f}s\n" +
+            (f"Pretrain time: {pretrain_start_time - start_time:.2f}s\n" if pretrain_start_time is not None else "") +
+            f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
+            "\n\n\n\n" + str(cfg),
+            f'Experiment "{description}" Is Successfully Over',
+            (log_path, *figure_paths),
+        )
+    except Exception as e:
+        error_info = traceback.format_exc()
+        logger.info(f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
+        reminder.send_message(
+            f"Experiment {description} failed.\n" +
+            f"Method: {cfg.get('global', 'method_name')}\n" +
+            f"Dataset: {cfg.get('global', 'dataset')}\n" +
+            f"Error Message: {e}\n" +
+            f"Full traceback:{error_info}" +
+            "\n\n\n\n" + str(cfg),
+            f'Experiment "{description}" Failed To Correctly Run',
+            (log_path, ),
+        )
 
 
 if __name__ == "__main__":

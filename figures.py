@@ -70,7 +70,7 @@ def gen_tsne(features:np.ndarray, true_labels, pred_labels, path, classIdx2label
     if true_labels is not None:
         if classIdx2label is not None:
             true_labels = classIdx2label(true_labels)
-        df_tsne['label1'] = true_labels
+        df_tsne['label1'] = [chr(l + ord('a')) for l in true_labels]
     if pred_labels is not None:
         df_tsne['label2'] = [chr(l + ord('a')) for l in pred_labels]
     df_tsne.head()
@@ -105,7 +105,7 @@ def gen_umap(features:np.ndarray, true_labels, pred_labels, path, classIdx2label
     if true_labels is not None:
         if classIdx2label is not None:
             true_labels = classIdx2label(true_labels)
-        df_umap['label1'] = true_labels
+        df_umap['label1'] = [chr(l + ord('a')) for l in true_labels]
     if pred_labels is not None:
         df_umap['label2'] = [chr(l + ord('a')) for l in pred_labels]
     df_umap.head()

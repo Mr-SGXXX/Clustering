@@ -14,6 +14,7 @@ class MNIST(Dataset):
         train_dataset = datasets.MNIST(data_dir, train=True, download=True)
         test_dataset = datasets.MNIST(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
+        self.data = self.data.reshape((self.data.shape[0], 1, self.data.shape[1], self.data.shape[2]))
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]

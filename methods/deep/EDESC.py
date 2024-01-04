@@ -60,7 +60,6 @@ class EDESC(DeepMethod):
             assert self.n_clusters > 0, "n_clusters should be larger than 0"
         self.encoder_dims = cfg.get("EDESC", "encoder_dims")
         self.decoder_dims = cfg.get("EDESC", "decoder_dims")
-        self.hidden_dim = cfg.get("EDESC", "hidden_dim")
         self.d = cfg.get("EDESC", "d")
         self.eta = cfg.get("EDESC", "eta")
         self.beta = cfg.get("EDESC", "beta")
@@ -70,6 +69,8 @@ class EDESC(DeepMethod):
         self.evaluate_scores = {"acc": [], "nmi": [], "ari": []}
         self.clustering_scores = {"sc": []}
 
+        # refer to github issue https://github.com/JinyuCai95/EDESC-pytorch/issues/1 which tells that hidden_dim(n_z) == d * n_clusters
+        self.hidden_dim = self.d * self.n_clusters
         self.ae = EDESC_AE(self.input_dim, self.encoder_dims,
                            self.decoder_dims, self.hidden_dim).to(self.device)
 
@@ -122,6 +123,9 @@ class EDESC(DeepMethod):
                 if (epoch+1) % 10 == 0:
                     self.logger.info("Pretrain Epoch {} loss={:.4f}".format(
                         epoch + 1, total_loss / (batch_idx + 1)))
+                epoch_loader.set_postfix({
+                    "loss": total_loss / (batch_idx + 1)
+                })
                 pretrain_loss_list.append(total_loss / (batch_idx + 1))
 
         self.logger.info("Pretraining finished!")
@@ -171,9 +175,8 @@ class EDESC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z.detach().cpu().numpy(),
-                                                          y_true=self.dataset.label)
-                if (epoch+1) % 10 == 0:
+                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z, y_true=self.dataset.label)
+                if epoch % 10 == 0:
                     self.logger.info(
                         f'Epoch {epoch + 1}: Acc {acc:.4f} NMI {nmi:.4f} ARI {ari:.4f} Delta_label {delta_label:.4f}')
                 total_reconstr_loss = 0
