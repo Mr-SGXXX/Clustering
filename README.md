@@ -1,11 +1,40 @@
 # Clustering
+__Notice: The repository is far from completed, all codes I provided are just for share and will often be changed. And I do not promise any performance and accurate reproduction.__
+
 ## Install and Usage
 1. If you want to use the code provided by this repository, the first thing you need to do is to select a proper position and clone this repository from github. The command you need is:
 
    ```shell
    git clone git@github.com:Mr-SGXXX/Clustering.git
+   cd Clustering
    ```
-2. After downloading the repository, you need to construct a proper python environment.I advise you to use the conda, which can easily build a nice environment without influencing your other project setting. 
+
+2. After downloading the repository, you need to construct a proper python environment. I advise you to use the conda, which can easily build a nice environment without influencing your other project setting. You can download Anaconda [here](https://anaconda.org/anaconda/conda), but I suggest you to install miniconda following this [site](https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html).
+   To create a new conda environment, you can use the following command:
+   ```shell
+   conda create -n clustering python=3.8
+   conda activate clustering
+   ```
+
+3. If you want to run the codes, you need to install the packages this repository used. And to install them, you can run the following command:
+   ```shell
+   pip install -r requirements.txt
+   ```
+
+4. After preparing the running environment, you can choose which dataset for clustering and which method you want to use in the [config files](./cfg/example.cfg). For the chosen dataset or method, you can also change the hyper-parameters setting in the config file.
+   
+5. After the experiment, there will be a log file containing the collected message during the experiment as well as a set of figures generated based the features and scores of the experiment. If you stop too many experiments, you can use the following bash script to remove the useless log.
+   ```shell
+   bash ./clean_log.sh /path/to/log /path/to/figures 
+   ```
+   Or when you use the default log and figure path, you can use:
+   ```shell
+   bash ./clean_log.sh
+   ```
+   **Notice: Do Not Use The Script When Running Any Experiment.**
+   
+6.  If you want to add a new method or dataset based on this repository, you can firstly lookup the '\_\_init\_\_.py' file for method package (divided into [classical](./methods/classical/__init__.py) methods and [deep](./methods/deep/__init__.py) methods) or [dataset package](./datasetProcesser/__init__.py). Then you can design your method and benefit from the pipeline.
+
 
 ## Methods List
 ### Classical Methods

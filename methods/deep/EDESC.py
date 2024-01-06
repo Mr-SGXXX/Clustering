@@ -29,6 +29,7 @@ class EDESC(DeepMethod):
     Attributes:
         input_dim (int): Input dimension. Automatically inferred from the dataset.
         dataset: Dataset object.
+        description (str): Description of the experiment.
         n_clusters (int): Number of clusters.
         encoder_dims (list): List of encoder dimensions.
         decoder_dims (list): List of decoder dimensions.
@@ -47,8 +48,8 @@ class EDESC(DeepMethod):
 
     """
 
-    def __init__(self, dataset, logger: Logger, cfg: config):
-        super().__init__(dataset, logger, cfg)
+    def __init__(self, dataset, description, logger: Logger, cfg: config):
+        super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
 
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:

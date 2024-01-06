@@ -12,9 +12,10 @@ class STL10(Dataset):
         self.name = 'STL10'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.STL10(data_dir, split='train', download=True)
-
+        unlabel_dataset = datasets.STL10(data_dir, split='unlabeled', download=True)
         test_dataset = datasets.STL10(data_dir, split='test', download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
+        self.unlabel_data = unlabel_dataset.data
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
@@ -28,6 +29,8 @@ class STL10(Dataset):
                 else:
                     self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'STL10_resnet50.npy'), self.data)
+            elif cfg.get("STL10", "img2seq_method") == 'hog':
+                pass
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:

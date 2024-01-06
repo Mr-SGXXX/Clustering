@@ -40,7 +40,7 @@ class ResNet50Extractor(nn.Module):
             transforms.Resize(256),
             transforms.CenterCrop(224),
         ])
-        data = torch.Tensor(data)
+        data = torch.Tensor(data) / 255
         dataset = TensorDataset(data)  
         self.dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
 

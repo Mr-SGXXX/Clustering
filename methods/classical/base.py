@@ -6,3 +6,4 @@ class ClassicalMethod:
     
     def fit(self, data):
         raise NotImplementedError
+        # this method should return the predicted labels and the features clustered.

@@ -21,9 +21,10 @@ def main():
     description = (
         cfg.get("global", "description")
         if cfg.get("global", "description") is not None
-        else cfg.get("global", "method_name") + "_" +
-        cfg.get("global", "dataset")
+        else (cfg.get("global", "method_name") + "_" +
+        cfg.get("global", "dataset"))
     ) + f"_{int(start_time)}"
+    print(description)
     logger, log_path = get_logger(
         cfg.get("global", "log_dir"), description, std_out=False)
     logger.info(
@@ -71,7 +72,7 @@ def main():
             acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
         elif method_flag == "deep":
             pretrain_start_time = time.time()
-            method = method(dataset, logger, cfg)
+            method = method(dataset, description, logger, cfg)
             pretrain_features, pretrain_loss_list = method.pretrain()
             train_start_time = time.time()
             pred_labels, features, metrics = method.train_model()
@@ -118,6 +119,7 @@ def main():
             (log_path, *figure_paths),
         )
     except Exception as e:
+        # raise e
         error_info = traceback.format_exc()
         logger.info(f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
         reminder.send_message(

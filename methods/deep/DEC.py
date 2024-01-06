@@ -15,13 +15,11 @@ from .backbone.DEC_AE import DEC_AE
 # from .backbone.EDESC_AE import EDESC_AE as DEC_AE
 from .backbone.layers.DEC_ClusteringLayer import ClusteringLayer
 from .utils.DEC_utils import target_distribution
-import torch
-from torch.utils.data import DataLoader
 
 
 class DEC(DeepMethod):
-    def __init__(self, dataset, logger: Logger, cfg: config):
-        super().__init__(dataset, logger, cfg)
+    def __init__(self, dataset, description, logger: Logger, cfg: config):
+        super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
             self.n_clusters = dataset.num_classes
@@ -66,21 +64,22 @@ class DEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain.pth")
-        if os.path.exists(weight_path) and not self.cfg.get("global", "use_pretrain"):
-            count = 0
-            weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain_{count}.pth")
-            while os.path.exists(weight_path):
-                count += 1
-                weight_path = os.path.join(self.weight_dir, f"DEC_{self.dataset.name}_pretrain_{count}.pth")
-            
-        if os.path.exists(weight_path) and self.cfg.get("global", "use_pretrain"):
+        pretrain_path = self.cfg.get("DEC", "pretrain_path")
+        if pretrain_path is not None:
+            pretrain_path = os.path.join(self.weight_dir, pretrain_path)
+        else:
+            pretrain_path = ""
+        if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
             self.logger.info("Pretrained weight found, Loading pretrained model...")
-            self.ae.load_state_dict(torch.load(weight_path))
+            self.ae.load_state_dict(torch.load(pretrain_path))
             pretrain_loss_list = []
         else:
+            weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
             pretrain_loss_list = []
-            self.logger.info("Pretrained weight not found, Pretraining...")
+            if not os.path.exists(pretrain_path):
+                self.logger.info("Pretrained weight not found, Pretraining...")
+            elif not self.cfg.get("global", "use_pretrain"):
+                self.logger.info("Not using pretrained weight, Pretraining...")
             # Pretrain in greedy layer-wise way
             train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
             with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
@@ -142,6 +141,7 @@ class DEC(DeepMethod):
             #         pretrain_loss_list.append(total_loss / len(train_loader))
             #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
 
+            self.logger.info(f"Pretrain Weight saved in {weight_path}")
             torch.save(self.ae.state_dict(), weight_path)
             self.logger.info("Pretraining finished!")
 

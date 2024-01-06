@@ -20,7 +20,7 @@ class MNIST(Dataset):
             self.input_dim = self.data.shape[1:]
         elif 'seq' in needed_data_types:
             if cfg.get("MNIST", "img2seq_method") == 'flatten':
-                self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+                self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32) * 0.02
             elif cfg.get("MNIST", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'MNIST')
                 if os.path.exists(os.path.join(data_dir, 'MNIST_resnet50.npy')):

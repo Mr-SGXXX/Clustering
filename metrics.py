@@ -162,10 +162,8 @@ def clusters_scores(y_pred, features):
     if len(set(y_pred)) == 1:
         sc = -1.0
     else:
-        if type(features) is np.ndarray:
-            sc = sklearn_silhouette_score(features, y_pred)
-        elif type(features) is torch.Tensor:
-            sc = silhouette_score(features, y_pred)
+        sc = sklearn_silhouette_score(features.detach().cpu().numpy(), y_pred)
+        # sc = silhouette_score(features.detach(), y_pred)
     return sc
 
 

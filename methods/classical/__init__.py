@@ -7,6 +7,7 @@ CLASSICAL_METHODS: A dict of classical clustering methods.
 The key is the name of the method, and the value is the class of the method.
 Each method should consist of `__init__(cfg)`, `fit(data)` methods.
 fit() should return the predicted labels and the features clustered.
+the args must be the same as the base class in `base.py`.
 """
 
 CLASSICAL_METHODS = {
