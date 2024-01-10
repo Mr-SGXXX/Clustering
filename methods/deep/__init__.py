@@ -7,8 +7,12 @@ The Dictionary of Deep clustering methods
 
 The key is the name of the method, and the value is the class of the method.
 Each method should consist of `__init__(dataset, description, logger, cfg)`, `pretrain()`, `train()` and `forward()` methods.
-pretrain() should return the hidden layer representation of the whole dataset and the pretrain loss list.
-train_model() should return the predicted labels, features and metrics. There must be a `total_loss` update in the metrics.
+pretrain() should return the hidden layer representation of the whole dataset.
+There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
+
+train_model() should return the predicted labels, features. 
+There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.
+If ground truth is available, the `y_true` should be passed to the `update` method of the metrics.
 the args must be the same as the base class in `base.py`.
 """
 DEEP_METHODS = {
@@ -27,10 +31,10 @@ DEEP_METHODS = {
 }
 
 """
-DEEP_METHODS_INPUT_IMG_FLAG: A dict of flags indicating whether the input data is an image.
+DEEP_METHODS_INPUT_TYPES: The Dictionary of Deep clustering methods' input types
 
 The key is the name of the method, and the value is the list of what type of input data the method can directly accept
-such as "seq" for sequential data, "img" for image data, "tab" for tabular data, "graph" for graph data, etc
+such as "seq" for sequential data, "img" for image data, "graph" for graph data, etc
 """
 DEEP_METHODS_INPUT_TYPES = {
     "EDESC": ["seq"],

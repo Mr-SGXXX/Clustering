@@ -67,18 +67,16 @@ class IDEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        pretrain_path = self.cfg.get("IDEC", "pretrain_path")
+        pretrain_path = self.cfg.get("DEC", "pretrain_path")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
         else:
             pretrain_path = ""
         if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
-            self.logger.info("Pretrained weight found, Loading pretrained model...")
+            self.logger.info(f"Pretrained weight found, Loading pretrained model in {pretrain_path}...")
             self.ae.load_state_dict(torch.load(pretrain_path))
-            pretrain_loss_list = []
         else:
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
-            pretrain_loss_list = []
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
@@ -101,7 +99,7 @@ class IDEC(DeepMethod):
                                 total_loss += loss.item()
                                 optimizer.step()
                             scheduler.step()
-                            pretrain_loss_list.append(total_loss / len(train_loader))
+                            self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
                             epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
                             if it % 1000 == 0:
                                 self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
@@ -122,13 +120,13 @@ class IDEC(DeepMethod):
                         loss.backward()
                         optimizer.step()
                     scheduler.step()
-                    pretrain_loss_list.append(total_loss / len(train_loader))
+                    self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
                     epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
                     if it % 1000 == 0:
                         self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
             
             # Pretrain in a quick way 
-                    
+
             # optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
             # with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
             #     for it in epoch_loader:
@@ -141,18 +139,17 @@ class IDEC(DeepMethod):
             #             optimizer.zero_grad()
             #             loss.backward()
             #             optimizer.step()
-            #         pretrain_loss_list.append(total_loss / len(train_loader))
+            #         self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
             #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
 
             self.logger.info(f"Pretrain Weight saved in {weight_path}")
             torch.save(self.ae.state_dict(), weight_path)
             self.logger.info("Pretraining finished!")
 
-        return self.encode_dataset()[0], pretrain_loss_list
+        return self.encode_dataset()[0]
 
     def train_model(self):
         es_count = 0
-        metrics = Metrics(self.dataset.label is not None)
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
         # optimizer = optim.Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
@@ -171,7 +168,10 @@ class IDEC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z, y_true=self.dataset.label)
+                if self.cfg.get("global", "record_sc"):
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                else:
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     data = data.to(self.device)
                     x_bar, q, z = self(data)
@@ -187,7 +187,7 @@ class IDEC(DeepMethod):
                 total_loss /= len(train_loader)
                 total_rec_loss /= len(train_loader)
                 total_kl_loss /= len(train_loader)
-                metrics.update_loss(
+                self.metrics.update_loss(
                     total_loss=total_loss, 
                     total_rec_loss=total_rec_loss,
                     total_kl_loss=total_kl_loss
@@ -205,5 +205,5 @@ class IDEC(DeepMethod):
                     "ARI": ari,
                     "Delta_label": delta_label
                 })
-        return y_pred, self.encode_dataset()[0], metrics
+        return y_pred, self.encode_dataset()[0]
 

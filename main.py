@@ -63,56 +63,62 @@ def main():
         metrics = None
         features = None
         pretrain_features = None
-        pretrain_loss_list = None
+        pretrain_start_time = None
         if method_flag == "classical":
             method = method(cfg)
-            pretrain_start_time = None
             train_start_time = time.time()
             pred_labels, features = method.fit(dataset.data)
             acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
         elif method_flag == "deep":
             pretrain_start_time = time.time()
             method = method(dataset, description, logger, cfg)
-            pretrain_features, pretrain_loss_list = method.pretrain()
+            pretrain_features = method.pretrain()
             train_start_time = time.time()
-            pred_labels, features, metrics = method.train_model()
+            pred_labels, features = method.train_model()
+            metrics = method.metrics
 
         train_end_time = time.time()
 
         # TODO: draw figures and save the results
         if metrics is not None:
-            metrics.save_rst(logger)
+            logger.info("Clustering Over!")
+            logger.info(str(metrics))
+            pretrain_start_time += metrics.pretrain_time_cost
+            train_end_time -= metrics.clustering_time_cost
+            logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
         else:
             logger.info(
                 f"Clustering Over!\n" +
                 f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}" 
             )
-        logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
         logger.info(f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
         
         if cfg.get("global", "save_clustering_result") == True:
             rst_path = os.path.join(cfg.get("global", "result_dir"), f'{description}.csv')
             df = pd.DataFrame(pred_labels, columns=['Cluster'])
             df.to_csv(rst_path, index=True)
-    
-        figure_paths = draw_charts(
-            rst_metrics=metrics,
-            pretrain_features=pretrain_features,
-            pretrain_loss_list=pretrain_loss_list,
-            features=features,
-            pred_labels=pred_labels,
-            true_labels=dataset.label,
-            description=description,
-            cfg=cfg
-        )
-        logger.info("Figures Successfully Generated!")
+        try:
+            figure_paths = draw_charts(
+                rst_metrics=metrics,
+                pretrain_features=pretrain_features,
+                features=features,
+                pred_labels=pred_labels,
+                true_labels=dataset.label,
+                description=description,
+                cfg=cfg
+            )
+            logger.info("Figures Successfully Generated!")
+        except Exception as e:
+            figure_paths = None
+            logger.info(f"Figures Generation Failed for {e}")
         end_time = time.time()
         reminder.send_message(
             f"Experiment {description} is over.\n" +
             f"Method: {cfg.get('global', 'method_name')}\n" +
             f"Dataset: {cfg.get('global', 'dataset')}\n" +
+            f"Metrics:\n{metrics}\n"
             f"Total time: {end_time - start_time:.2f}s\n" +
-            (f"Pretrain time: {pretrain_start_time - start_time:.2f}s\n" if pretrain_start_time is not None else "") +
+            (f"Pretrain time: {train_start_time - pretrain_start_time:.2f}s\n" if pretrain_start_time is not None else "") +
             f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
             "\n\n\n\n" + str(cfg),
             f'Experiment "{description}" Is Successfully Over',
@@ -129,7 +135,7 @@ def main():
             f"Error Message: {e}\n" +
             f"Full traceback:{error_info}" +
             "\n\n\n\n" + str(cfg),
-            f'Experiment "{description}" Failed To Correctly Run',
+            f'Experiment "{description}" Failed for {e}',
             (log_path, ),
         )
 

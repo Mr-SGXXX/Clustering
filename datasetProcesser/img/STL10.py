@@ -2,9 +2,9 @@ import torch
 from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import numpy as np
-import os
+import os 
 
-from .utils import ResNet50Extractor
+from .utils import ResNet50Extractor, extract_hog_features, extract_color_map_features
 from utils import config
 
 class STL10(Dataset):
@@ -14,14 +14,15 @@ class STL10(Dataset):
         train_dataset = datasets.STL10(data_dir, split='train', download=True)
         unlabel_dataset = datasets.STL10(data_dir, split='unlabeled', download=True)
         test_dataset = datasets.STL10(data_dir, split='test', download=True)
-        self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
-        self.unlabel_data = unlabel_dataset.data
+        self.data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
+        self.unlabel_data = unlabel_dataset.data.numpy()
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
         elif 'seq' in needed_data_types:
             if cfg.get("STL10", "img2seq_method") == 'flatten':
                 self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+                self.unlabel_data = self.unlabel_data.reshape(self.unlabel_data.shape[0], -1).astype(np.float32)
             elif cfg.get("STL10", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'stl10_binary')
                 if os.path.exists(os.path.join(data_dir, 'STL10_resnet50.npy')):
@@ -29,8 +30,23 @@ class STL10(Dataset):
                 else:
                     self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'STL10_resnet50.npy'), self.data)
-            elif cfg.get("STL10", "img2seq_method") == 'hog':
-                pass
+                if os.path.exists(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy')):
+                    self.unlabel_data = np.load(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy'))
+                else:
+                    self.unlabel_data = ResNet50Extractor(self.unlabel_data, cfg)().astype(np.float32)
+                    np.save(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy'), self.unlabel_data)
+            elif cfg.get("STL10", "img2seq_method") == 'hog_color':
+                if os.path.exists(os.path.join(data_dir, 'STL10_hog_color.npy')):
+                    self.data = np.load(os.path.join(data_dir, 'STL10_hog_color.npy'))
+                else:
+                    self.data = self.data.transpose((0, 2, 3, 1))
+                    features = [
+                        np.concatenate((extract_hog_features(img), extract_color_map_features(img)), axis=0) for img in self.data
+                    ]
+                    self.data = np.array(features).astype(np.float32)
+                    np.save(os.path.join(data_dir, 'STL10_hog_color.npy'), self.data)
+            else:
+                raise ValueError(f"`{cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:

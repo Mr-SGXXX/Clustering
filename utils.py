@@ -266,7 +266,7 @@ class email_reminder:
             messages.append(message)
         return messages
     
-    def send_message(self, content:str, title:str, attachs:typing.Union[None, typing.Iterable, str]=None):
+    def send_message(self, content:str, title:str, attachs:typing.Union[None, typing.Iterable[str], str]=None):
         """
         Send email to the receiver(s).
         :param content: str, the content of the email

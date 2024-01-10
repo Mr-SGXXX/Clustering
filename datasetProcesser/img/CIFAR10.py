@@ -15,6 +15,7 @@ class CIFAR10(Dataset):
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         self.data = self.data.transpose((0, 3, 1, 2))
+        self.unlabel_data = None
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
@@ -28,6 +29,8 @@ class CIFAR10(Dataset):
                 else:
                     self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'CIFAR10_resnet50.npy'), self.data)
+            else:
+                raise ValueError(f"`{cfg.get('CIFAR10', 'img2seq_method')}` is not an available img2seq_method for CIFAR10")
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:

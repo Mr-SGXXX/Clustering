@@ -10,7 +10,7 @@ import os
 from metrics import Metrics
 from utils import config
 
-def draw_charts(rst_metrics:Metrics, pretrain_features:torch.Tensor, pretrain_loss_list:list, features:torch.Tensor, pred_labels, true_labels, description, cfg:config):
+def draw_charts(rst_metrics:Metrics, pretrain_features:torch.Tensor, features:torch.Tensor, pred_labels, true_labels, description, cfg:config):
     figure_dir = os.path.join(cfg.get("global", "figure_dir"), description)
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
@@ -33,14 +33,23 @@ def draw_charts(rst_metrics:Metrics, pretrain_features:torch.Tensor, pretrain_lo
                 losses_list.append(rst_metrics.Loss[loss_name].val_list)
             gen_loss_chart(losses_list, loss_names, clustering_loss_figure_path)
             figure_paths.append(clustering_loss_figure_path)
-        score_dict = {
-            'ACC': rst_metrics.ACC.val_list,
-            'NMI': rst_metrics.NMI.val_list,
-            'ARI': rst_metrics.ARI.val_list,
-            'SC': rst_metrics.SC.val_list,
-        }
-        gen_clustering_chart_metrics_score(rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
-        figure_paths.append(clustering_score_figure_path)
+            score_dict = {
+                'ACC': rst_metrics.ACC.val_list,
+                'NMI': rst_metrics.NMI.val_list,
+                'ARI': rst_metrics.ARI.val_list,
+                'SC': rst_metrics.SC.val_list,
+            }
+            gen_clustering_chart_metrics_score(rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
+            figure_paths.append(clustering_score_figure_path)
+        if len(rst_metrics.PretrainLoss) > 1:
+            losses_list = []
+            loss_names = []
+            for loss_name in rst_metrics.PretrainLoss:
+                loss_names.append(loss_name) 
+                losses_list.append(rst_metrics.PretrainLoss[loss_name].val_list)
+            gen_pretrain_loss_chart(losses_list, loss_names, pretrain_loss_figure_path)
+            figure_paths.append(pretrain_loss_figure_path)
+
     if features is not None:
         gen_tsne(features.cpu().detach().numpy(), true_labels, pred_labels, clustering_tsne_figure_path)
         gen_umap(features.cpu().detach().numpy(), true_labels, pred_labels, clustering_umap_figure_path)
@@ -53,9 +62,6 @@ def draw_charts(rst_metrics:Metrics, pretrain_features:torch.Tensor, pretrain_lo
         figure_paths.append(pretrain_tsne_figure_path)
         figure_paths.append(pretrain_umap_figure_path)
 
-    if pretrain_loss_list is not None and pretrain_loss_list != []:
-        gen_pretrain_loss_chart(pretrain_loss_list, pretrain_loss_figure_path)
-        figure_paths.append(pretrain_loss_figure_path)
     return figure_paths
 
 
@@ -132,12 +138,15 @@ def gen_umap(features:np.ndarray, true_labels, pred_labels, path, classIdx2label
         plt.legend(loc='best')
     plt.savefig(path)
 
-def gen_pretrain_loss_chart(loss_list, path, figsize=(10, 6)):
+def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     # Generate pretrain loss chart
-    epochs = list(range(1, len(loss_list) + 1))
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    epochs = list(range(1, len(losses_list[0]) + 1))
     plt.figure(figsize=figsize)
-    plt.plot(epochs, loss_list, color='steelblue', linewidth=2)
-    plt.xlim(1, len(loss_list))
+    for i in range(len(losses_list)):
+        plt.plot(epochs, losses_list[i], color=colors[i], linewidth=2, label=loss_names[i])
+    plt.xlim(1, len(losses_list[0]))
+    plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
     plt.xlabel("Epoch", fontsize=12)
@@ -145,7 +154,7 @@ def gen_pretrain_loss_chart(loss_list, path, figsize=(10, 6)):
     plt.savefig(path)
 
 def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
-    # Generate pretrain loss chart
+    # Generate loss chart
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     epochs = list(range(1, len(losses_list[0]) + 1))
     plt.figure(figsize=figsize)
@@ -167,14 +176,13 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     ax1.set_xlabel("Epoch", fontsize=12)
     ax1.set_ylabel("Loss", fontsize=12)
     ax2 = ax1.twinx()
-    if len(score_dict) > 1:
+    if len(score_dict['ACC']) != 0:
         ax2.plot(epochs, score_dict['ACC'], color='red', linewidth=1, label='ACC')
         ax2.plot(epochs, score_dict['NMI'], color='orange', linewidth=1, label='NMI')
         ax2.plot(epochs, score_dict['ARI'], color='green', linewidth=1, label='ARI')
+    if len(score_dict['SC']) != 0:
         ax2.plot(epochs, score_dict['SC'], color='brown', linewidth=1, label='SC')
-        ax2.set_ylabel("Evaluation Metric", color='black', fontsize=12)
-    else:
-        ax2.plot(epochs, score_dict['SC'], color='brown', linewidth=1, label='SC')
+    ax2.set_ylabel("Evaluation Metric", color='black', fontsize=12)
     ax1.legend(loc='best')
     ax2.legend(loc='best')
     plt.title("Clustering Loss and Evaluation Metrics Chart", fontsize=14)

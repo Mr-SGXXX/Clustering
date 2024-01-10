@@ -138,7 +138,7 @@ Each method in each dataset will be tried for several times for fair. For deep m
 #### Reuters10K
 |       Method        | Test Times |      ACC       |      NMI       |      ARI       | Avg Time |
 | :-----------------: | :--------: | :------------: | :------------: | :------------: | :------: |
-|        EDESC        |     15     | 0.6765(0.0549) | 0.3806(0.0612) | 0.4271(0.0734) |          |
+|        EDESC        |     16     | 0.6933(0.0542) | 0.3983(0.0540) | 0.4461(0.0754) |          |
 | Spectral Clustering |            |                |                |                |          |
 |       KMeans        |            |                |                |                |          |
 

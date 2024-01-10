@@ -109,7 +109,6 @@ class EDESC(DeepMethod):
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=True)
         optimizer = Adam(model.parameters(), lr=self.lr)
-        pretrain_loss_list = []
         with tqdm(range(50), desc="Pretrain AE", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
                 total_loss = 0.
@@ -127,10 +126,10 @@ class EDESC(DeepMethod):
                 epoch_loader.set_postfix({
                     "loss": total_loss / (batch_idx + 1)
                 })
-                pretrain_loss_list.append(total_loss / (batch_idx + 1))
+                self.metrics.update_pretrain_loss(total_loss=(total_loss / (batch_idx + 1)))
 
         self.logger.info("Pretraining finished!")
-        return self.encode_dataset()[0], pretrain_loss_list
+        return self.encode_dataset()[0]
 
     def train_model(self):
         """
@@ -144,7 +143,6 @@ class EDESC(DeepMethod):
         """
         # self.ae.load_state_dict(torch.load(
         #     "weight/reuters.pkl", map_location=self.device))
-        metrics = Metrics(self.dataset.label is not None)
         train_loader = DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=False)
         # d_cons1 = D_constraint1()
@@ -176,7 +174,10 @@ class EDESC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z, y_true=self.dataset.label)
+                if self.cfg.get("global", "record_sc"):
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                else:
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 if epoch % 10 == 0:
                     self.logger.info(
                         f'Epoch {epoch + 1}: Acc {acc:.4f} NMI {nmi:.4f} ARI {ari:.4f} Delta_label {delta_label:.4f}')
@@ -226,7 +227,7 @@ class EDESC(DeepMethod):
                 total_loss_d1 /= len(train_loader)
                 total_loss_d2 /= len(train_loader)
                 total_loss /= len(train_loader)
-                metrics.update_loss(total_reconstr_loss=total_reconstr_loss,
+                self.metrics.update_loss(total_reconstr_loss=total_reconstr_loss,
                                     total_kl_loss=total_kl_loss,
                                     total_loss_d1=total_loss_d1,
                                     total_loss_d2=total_loss_d2,
@@ -237,7 +238,7 @@ class EDESC(DeepMethod):
                     "ARI": ari,
                     "Delta_label": delta_label
                 })
-        return y_pred, self.encode_dataset()[0], metrics
+        return y_pred, self.encode_dataset()[0]
 
     def forward(self, x):
         """

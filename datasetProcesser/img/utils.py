@@ -5,6 +5,9 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 from tqdm import tqdm
 import numpy as np
+from skimage.feature import hog
+from skimage import color
+import cv2 as cv
 
 from utils import config
 
@@ -58,3 +61,19 @@ class ResNet50Extractor(nn.Module):
                 features.append(feature)
         features = np.concatenate(features, axis=0)
         return features
+    
+# Define a function to extract HOG features
+def extract_hog_features(image):
+    # Convert the image to grayscale
+    grayscale = color.rgb2gray(image)
+    # Extract HOG features
+    features, _ = hog(grayscale, pixels_per_cell=(8, 8), cells_per_block=(1, 1), visualize=True)
+    return features
+
+# Define a function to extract 8x8 color map features
+def extract_color_map_features(image, size=(8, 8)):
+    # Resize the image to 8x8
+    resized_image = cv.resize(image, size)
+    # Flatten the color map
+    color_map = resized_image.flatten()
+    return color_map

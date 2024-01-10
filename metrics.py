@@ -5,6 +5,7 @@ from scipy.optimize import linear_sum_assignment as linear_assignment
 from logging import Logger
 import torch
 from tqdm import tqdm
+from time import time
 
 
 class Metrics:
@@ -22,39 +23,55 @@ class Metrics:
         avg: Get the average value of each metric.
     """
 
-    def __init__(self, with_ground_true=True):
+    def __init__(self):
         self.ACC = AverageMeter("ACC")
         self.NMI = AverageMeter("NMI")
         self.ARI = AverageMeter("ARI")
         self.HOMO = AverageMeter("HOMO")
         self.COMP = AverageMeter("COMP")
         self.SC = AverageMeter("SC")
+        self.PretrainLoss = {}
         self.Loss = {}
+        self.pretrain_time_cost = 0
+        self.clustering_time_cost = 0
 
-        self.with_ground_true = with_ground_true
+    def update_pretrain_loss(self, **kwargs):
+        start_time = time()
+        for key in kwargs.keys():
+            if key not in self.PretrainLoss:
+                self.PretrainLoss[key] = AverageMeter(key)
+            self.PretrainLoss[key].update(kwargs[key])
+        self.pretrain_time_cost += time() - start_time
 
     def update_loss(self, **kwargs):
+        start_time = time()
         for key in kwargs.keys():
             if key not in self.Loss:
                 self.Loss[key] = AverageMeter(key)
             self.Loss[key].update(kwargs[key])
+        self.clustering_time_cost += time() - start_time
 
-    def update(self, y_pred, features, y_true=None):
-        assert type(features) is np.ndarray or type(features) is torch.Tensor
-        sc = clusters_scores(y_pred, features)
-        self.SC.update(sc)
-        if self.with_ground_true == True:
-            assert y_true is not None, "y_true is necessary!"
-            assert type(y_true) is np.ndarray
+    def update(self, y_pred, features=None, y_true=None):
+        start_time = time()
+        assert features is None or type(features) is np.ndarray or type(features) is torch.Tensor
+        if features is not None:
+            # when the size of dataset is too big, calculate the sc costs too much time.
+            sc = clusters_scores(y_pred, features)
+            self.SC.update(sc)
+        else:
+            sc = None
+        if y_true is not None:
+            assert type(y_true) is np.ndarray, "y_true should be of type np.ndarray or None"
             acc, nmi, ari, homo, comp = evaluate(y_pred, y_true)
             self.ACC.update(acc)
             self.NMI.update(nmi)
             self.ARI.update(ari)
             self.HOMO.update(homo)
             self.COMP.update(comp)
-            return (sc,), (acc, nmi, ari, homo, comp)
         else:
-            return (sc,)
+            acc, nmi, ari, homo, comp = None, None, None, None, None
+        self.clustering_time_cost += time() - start_time
+        return (sc,), (acc, nmi, ari, homo, comp)
 
     def max(self):
         return (self.SC.max,), (self.ACC.max, self.NMI.max, self.ARI.max, self.HOMO.max, self.COMP.max)
@@ -65,14 +82,12 @@ class Metrics:
     def avg(self):
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
 
-    def save_rst(self, logger: Logger):
-        logger.info(
-            f"Clustering Over!\n" +
-            f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" +
-            f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" +
-            f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" +
-            f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
-        )
+    def __str__(self):
+        return  f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
+                f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \
+                f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" + \
+                f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
+        
 
 
 class AverageMeter:
@@ -92,17 +107,18 @@ class AverageMeter:
         self.cnt = 0
 
     def update(self, val, cnt=1):
-        self.val_list.append(val)
-        self.last = val
-        self.sum += val * cnt
-        self.cnt += cnt
-        self.avg = self.sum / self.cnt
-        if self.max < val:
-            self.max = val
-            self.argmax = self.cnt
-        if self.min > val:
-            self.min = val
-            self.argmin = self.cnt
+        if val is not None:
+            self.val_list.append(val)
+            self.last = val
+            self.sum += val * cnt
+            self.cnt += cnt
+            self.avg = self.sum / self.cnt
+            if self.max < val:
+                self.max = val
+                self.argmax = self.cnt
+            if self.min > val:
+                self.min = val
+                self.argmin = self.cnt
 
     def __str__(self) -> str:
         return f"{self.name}: Avg: {self.avg:.4f} Min: {self.min:.4f} Max: {self.max:.4f}"

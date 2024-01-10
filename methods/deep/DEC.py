@@ -7,7 +7,6 @@ from tqdm import tqdm
 import numpy as np
 import os
 
-from metrics import Metrics
 from utils import config
 
 from .base import DeepMethod
@@ -70,12 +69,10 @@ class DEC(DeepMethod):
         else:
             pretrain_path = ""
         if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
-            self.logger.info("Pretrained weight found, Loading pretrained model...")
+            self.logger.info(f"Pretrained weight found, Loading pretrained model in {pretrain_path}...")
             self.ae.load_state_dict(torch.load(pretrain_path))
-            pretrain_loss_list = []
         else:
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
-            pretrain_loss_list = []
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
@@ -98,7 +95,7 @@ class DEC(DeepMethod):
                                 total_loss += loss.item()
                                 optimizer.step()
                             scheduler.step()
-                            pretrain_loss_list.append(total_loss / len(train_loader))
+                            self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
                             epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
                             if it % 1000 == 0:
                                 self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
@@ -119,7 +116,7 @@ class DEC(DeepMethod):
                         loss.backward()
                         optimizer.step()
                     scheduler.step()
-                    pretrain_loss_list.append(total_loss / len(train_loader))
+                    self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
                     epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
                     if it % 1000 == 0:
                         self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
@@ -138,18 +135,17 @@ class DEC(DeepMethod):
             #             optimizer.zero_grad()
             #             loss.backward()
             #             optimizer.step()
-            #         pretrain_loss_list.append(total_loss / len(train_loader))
+            #         self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
             #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
 
             self.logger.info(f"Pretrain Weight saved in {weight_path}")
             torch.save(self.ae.state_dict(), weight_path)
             self.logger.info("Pretraining finished!")
 
-        return self.encode_dataset()[0], pretrain_loss_list
+        return self.encode_dataset()[0]
 
     def train_model(self):
         es_count = 0
-        metrics = Metrics(self.dataset.label is not None)
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
         # optimizer = optim.Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(
@@ -167,7 +163,10 @@ class DEC(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
-                _, (acc, nmi, ari, _, _) = metrics.update(y_pred, z, y_true=self.dataset.label)
+                if self.cfg.get("global", "record_sc"):
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                else:
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     data = data.to(self.device)
                     x_bar, q, z = self(data)
@@ -177,8 +176,8 @@ class DEC(DeepMethod):
                     loss.backward()
                     optimizer.step()
                 total_loss /= len(train_loader)
-                metrics.update_loss(total_loss=total_loss)
-                if epoch % 10 == 0:
+                self.metrics.update_loss(total_loss=total_loss)
+                if (epoch + 1) % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
                 if delta_label < self.tol and es_count > 5:
                     self.logger.info(f"Early stopping at epoch {epoch}")
@@ -191,5 +190,5 @@ class DEC(DeepMethod):
                     "ARI": ari,
                     "Delta_label": delta_label
                 })
-        return y_pred, self.encode_dataset()[0], metrics
+        return y_pred, self.encode_dataset()[0]
 

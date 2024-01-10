@@ -15,6 +15,7 @@ class FashionMNIST(Dataset):
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         self.data = self.data.reshape((self.data.shape[0], 1, self.data.shape[1], self.data.shape[2]))
+        self.unlabel_data = None    
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
@@ -28,6 +29,8 @@ class FashionMNIST(Dataset):
                 else:
                     self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'FashionMNIST_resnet50.npy'), self.data)
+            else:
+                raise ValueError(f"`{cfg.get('FashionMNIST', 'img2seq_method')}` is not an available img2seq_method for FashionMNIST")
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
