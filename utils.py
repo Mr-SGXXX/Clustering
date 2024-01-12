@@ -112,7 +112,7 @@ def get_args():
 
     :return: argparse.Namespace, command line arguments
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Implementation of Clustering Methods, detailed setting is in the configuration file")
     parser.add_argument('-cp', '--config_path', help="Configuration file path")
     parser.add_argument('-ss', '--split_symbol', default=',', help="Configuration file delimiter")
     args = parser.parse_args()

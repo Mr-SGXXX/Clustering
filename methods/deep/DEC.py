@@ -63,7 +63,7 @@ class DEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        pretrain_path = self.cfg.get("DEC", "pretrain_path")
+        pretrain_path = self.cfg.get("DEC", "pretrain_file")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
         else:
@@ -77,66 +77,67 @@ class DEC(DeepMethod):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
                 self.logger.info("Not using pretrained weight, Pretraining...")
-            # Pretrain in greedy layer-wise way
-            train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
-            with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
-                for i in level_loader:
-                    optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
-                    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
-                    with tqdm(range(50000), desc="Period1 Epoch", dynamic_ncols=True, leave=False) as epoch_loader:
-                        for it in epoch_loader:
-                            total_loss = 0
-                            for data, _, _ in train_loader:
-                                data = data.to(self.device)
-                                x_bar, _ = self.ae(data, level=i)
-                                loss = nn.MSELoss()(x_bar, data)
-                                optimizer.zero_grad()
-                                loss.backward()
-                                total_loss += loss.item()
-                                optimizer.step()
-                            scheduler.step()
-                            self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
-                            epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
-                            if it % 1000 == 0:
-                                self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
-                    self.ae.freeze_level(i)
             
-            optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
-            self.ae.defreeze()
-            with tqdm(range(100000), desc="Pretrain Stacked AE Period2", dynamic_ncols=True, leave=False) as epoch_loader:
-                for it in epoch_loader:
-                    total_loss = 0
-                    for data, _, _ in train_loader:
-                        data = data.to(self.device)
-                        x_bar, _ = self.ae(data)
-                        loss = nn.MSELoss()(x_bar, data)
-                        total_loss += loss.item()
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
-                    scheduler.step()
-                    self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
-                    epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
-                    if it % 1000 == 0:
-                        self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
-            
-            # Pretrain in a quick way 
-
-            # optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
-            # with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
-            #     for it in epoch_loader:
-            #         total_loss = 0
-            #         for data, _, _ in train_loader:
-            #             data = data.to(self.device)
-            #             x_bar, _ = self.ae(data)
-            #             loss = nn.MSELoss()(x_bar, data)
-            #             total_loss += loss.item()
-            #             optimizer.zero_grad()
-            #             loss.backward()
-            #             optimizer.step()
-            #         self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
-            #         epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+            if self.cfg.get("DEC", "layer_wise_pretrain"):
+                # Pretrain in greedy layer-wise way
+                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
+                with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
+                    for i in level_loader:
+                        optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
+                        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
+                        with tqdm(range(50000), desc="Period1 Epoch", dynamic_ncols=True, leave=False) as epoch_loader:
+                            for it in epoch_loader:
+                                total_loss = 0
+                                for data, _, _ in train_loader:
+                                    data = data.to(self.device)
+                                    x_bar, _ = self.ae(data, level=i)
+                                    loss = nn.MSELoss()(x_bar, data)
+                                    optimizer.zero_grad()
+                                    loss.backward()
+                                    total_loss += loss.item()
+                                    optimizer.step()
+                                scheduler.step()
+                                self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
+                                epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                                if it % 1000 == 0:
+                                    self.logger.info(f"Pretrain Period1 Level {i} Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
+                        self.ae.freeze_level(i)
+                
+                optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
+                scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20000, gamma=0.1)
+                self.ae.defreeze()
+                with tqdm(range(100000), desc="Pretrain Stacked AE Period2", dynamic_ncols=True, leave=False) as epoch_loader:
+                    for it in epoch_loader:
+                        total_loss = 0
+                        for data, _, _ in train_loader:
+                            data = data.to(self.device)
+                            x_bar, _ = self.ae(data)
+                            loss = nn.MSELoss()(x_bar, data)
+                            total_loss += loss.item()
+                            optimizer.zero_grad()
+                            loss.backward()
+                            optimizer.step()
+                        scheduler.step()
+                        self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
+                        epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
+                        if it % 1000 == 0:
+                            self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
+            else:
+                # Pretrain in a quick way (not layer-wise)
+                optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
+                with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
+                    for it in epoch_loader:
+                        total_loss = 0
+                        for data, _, _ in train_loader:
+                            data = data.to(self.device)
+                            x_bar, _ = self.ae(data)
+                            loss = nn.MSELoss()(x_bar, data)
+                            total_loss += loss.item()
+                            optimizer.zero_grad()
+                            loss.backward()
+                            optimizer.step()
+                        self.metrics.update_pretrain_loss(total_loss=total_loss / len(train_loader))
+                        epoch_loader.set_postfix_str(f"Loss {total_loss / len(train_loader):.4f}")
 
             self.logger.info(f"Pretrain Weight saved in {weight_path}")
             torch.save(self.ae.state_dict(), weight_path)
@@ -145,6 +146,7 @@ class DEC(DeepMethod):
         return self.encode_dataset()[0]
 
     def train_model(self):
+        self.ae.defreeze()
         es_count = 0
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
         # optimizer = optim.Adam(self.parameters(), lr=self.lr)
@@ -170,7 +172,7 @@ class DEC(DeepMethod):
                 for data, _, idx in train_loader:
                     data = data.to(self.device)
                     x_bar, q, z = self(data)
-                    loss = nn.KLDivLoss()(q.log(), p[idx])
+                    loss = nn.KLDivLoss(reduction='batchmean')(q.log(), p[idx])
                     total_loss += loss.item()
                     optimizer.zero_grad()
                     loss.backward()
@@ -180,12 +182,12 @@ class DEC(DeepMethod):
                 if (epoch + 1) % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
                 if delta_label < self.tol and es_count > 5:
-                    self.logger.info(f"Early stopping at epoch {epoch}")
+                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                     break
                 else:
                     es_count += 1
                 epoch_loader.set_postfix({
-                    "Acc": acc,
+                    "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
                     "Delta_label": delta_label

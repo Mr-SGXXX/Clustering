@@ -23,6 +23,7 @@ class DeepMethod(nn.Module):
     # This method is used to pretrain the model.
     # It should return the hidden layer representation of the whole dataset.
     # There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
+    # For those methods that do not need pretraining, just return None.
     
     def train_model(self):
         raise NotImplementedError

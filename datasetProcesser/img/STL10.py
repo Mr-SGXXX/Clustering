@@ -50,7 +50,7 @@ class STL10(Dataset):
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
-            raise ValueError(f"Not available data type for STL10 in {needed_data_types}")
+            raise ValueError(f"No available data type for STL10 in {needed_data_types}")
         self.label = np.concatenate((train_dataset.labels, test_dataset.labels), axis=0)
         self.label = self.label.reshape((self.label.size,))
 

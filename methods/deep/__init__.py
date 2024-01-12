@@ -9,6 +9,7 @@ The key is the name of the method, and the value is the class of the method.
 Each method should consist of `__init__(dataset, description, logger, cfg)`, `pretrain()`, `train()` and `forward()` methods.
 pretrain() should return the hidden layer representation of the whole dataset.
 There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
+For those methods that do not need pretrain, just return None.
 
 train_model() should return the predicted labels, features. 
 There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.

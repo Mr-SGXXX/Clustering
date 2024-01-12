@@ -1,5 +1,11 @@
 # Clustering
+
 __Notice: The repository is far from completed, all codes I provided are just for share and will often be changed. And I do not promise any performance and accurate reproduction.__
+
+## Introduction
+This project is the collection of the codes reproduced by me and the paper sites about the clustering method in the past years. It also contains many methods which were publicly published and have shared their codes. 
+
+In the recent years, as the representation of unsupervised tasks, the clustering task received great attention from the researchers. Many related works came up and achieved significant success. For most works, the author gave the code for others to use, however, some of them are not fully complete, besides, the running environments and code frameworks are very different or out of fashion. So I decide to collect the papers as well as the codes, and bring them togethor. 
 
 ## Install and Usage
 1. If you want to use the code provided by this repository, the first thing you need to do is to select a proper position and clone this repository from github. The command you need is:
@@ -87,12 +93,12 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Referring Code](https://arxiv.org/pdf/1704.06327.pdf) 
 - [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Referring Code](https://github.com/XifengGuo/IDEC) 
   
-*In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process.*
+*In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process. Because the IDEC use the same pretrain process as the DEC, in order to save time, the IDEC will directly use the DEC pretrain weight*
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Referring Code](https://github.com/slim1017/VaDE) 
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Referring Code](https://github.com/boyangumn/DCN-New) 
 - [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Referring Code](https://github.com/piiswrong/dec/tree/master) 
 
-*In this method, the pretrain process is the most important part, whether the features are learned well by pretraining will lead to whether the result is good. With a original greedy layer-wise pretraining in DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
+*In this method, the pretrain process is the most important part, whether the features are learned well by pretraining is directly correspond to whether the result is good. With a reproduced greedy layer-wise pretraining referred to the DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Referring Code](https://github.com/jwyang/JULE.torch)
 
 
@@ -133,14 +139,15 @@ The hardware environment accessible to me as follows:
 - Memory Size: 64GB
 
 ### Scores Table
-Each method in each dataset will be tried for several times for fair. For deep methods, only the result of the last epoch or the result chosen in a no-need ground truth way will be used. The mean and std shown as the table. The running time of the deep methods contain pretrain time and clustering time.
+Each method in each dataset will be tried for several times for fair. For deep methods, only the result of the last epoch or the result chosen in a no-need ground truth way will be used. The highest scores as well as mean and std shown as the table with the format "max, mean(std)". The running time of the deep methods contain pretrain time and clustering time.
 
 #### Reuters10K
-|       Method        | Test Times |      ACC       |      NMI       |      ARI       | Avg Time |
-| :-----------------: | :--------: | :------------: | :------------: | :------------: | :------: |
-|        EDESC        |     16     | 0.6933(0.0542) | 0.3983(0.0540) | 0.4461(0.0754) |          |
-| Spectral Clustering |            |                |                |                |          |
-|       KMeans        |            |                |                |                |          |
+|       Method        | Test Times |          ACC           |          NMI           |          ARI           |
+| :-----------------: | :--------: | :--------------------: | :--------------------: | :--------------------: |
+|        EDESC        |     16     | 0.7687, 0.6933(0.0542) | 0.4686, 0.3983(0.0540) | 0.5416, 0.4461(0.0754) |
+|         DEC         |     16     | 0.7366, 0.6440(0.0456) | 0.4879, 0.4228(0.0417) | 0.4591, 0.3936(0.0452) |
+| Spectral Clustering |     4      | 0.4733, 0.4733(0.0000) | 0.2182, 0.2182(0.0000) | 0.0694, 0.0694(0.0000) |
+|       KMeans        |     16     | 0.5877, 0.5433(0.0207) | 0.5023, 0.4857(0.0109) | 0.4556, 0.4037(0.0220) |
 
 
 
@@ -149,4 +156,5 @@ In the end, I would like to express my gratitude to all researchers in the field
 
 In addition, thank to the github for the copilot assistant which greatly improved my efficence.
 
+## Contact
 My email is yx_shao@qq.com. If you have any question or advice, please contact me. 

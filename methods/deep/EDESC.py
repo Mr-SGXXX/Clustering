@@ -200,7 +200,7 @@ class EDESC(DeepMethod):
 
                         # Subspace clustering loss
                         kl_loss = F.kl_div(
-                            s.log(), s_tilde[idx])
+                            s.log(), s_tilde[idx], reduction='batchmean')
 
                         # Constraints
                         d_cons1 = D_constraint1()

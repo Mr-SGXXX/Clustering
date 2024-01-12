@@ -24,7 +24,7 @@ def main():
         else (cfg.get("global", "method_name") + "_" +
         cfg.get("global", "dataset"))
     ) + f"_{int(start_time)}"
-    print(description)
+    print(f"Experiment: {description} is running...")
     logger, log_path = get_logger(
         cfg.get("global", "log_dir"), description, std_out=False)
     logger.info(
@@ -76,6 +76,8 @@ def main():
             train_start_time = time.time()
             pred_labels, features = method.train_model()
             metrics = method.metrics
+        else:
+            raise NotImplementedError(f"Method Type {method_flag} Is Not Implemented!")
 
         train_end_time = time.time()
 
@@ -107,11 +109,13 @@ def main():
                 description=description,
                 cfg=cfg
             )
-            logger.info("Figures Successfully Generated!")
+            logger.info(f"Figures Successfully Generated, saved in {figure_paths}!")
         except Exception as e:
-            figure_paths = None
-            logger.info(f"Figures Generation Failed for {e}")
+            figure_paths = {}
+            error_info = traceback.format_exc()
+            logger.info(f"Figures Generation Failed for {error_info}")
         end_time = time.time()
+        logger.info(f"Total Time Cost: {end_time - start_time:.2f}s")
         reminder.send_message(
             f"Experiment {description} is over.\n" +
             f"Method: {cfg.get('global', 'method_name')}\n" +
@@ -124,6 +128,7 @@ def main():
             f'Experiment "{description}" Is Successfully Over',
             (log_path, *figure_paths),
         )
+        print(f"Experiment: {description} is over...")
     except Exception as e:
         # raise e
         error_info = traceback.format_exc()
@@ -138,6 +143,7 @@ def main():
             f'Experiment "{description}" Failed for {e}',
             (log_path, ),
         )
+        print(f"Experiment: {description} failed...")
 
 
 if __name__ == "__main__":

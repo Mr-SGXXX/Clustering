@@ -34,7 +34,7 @@ class CIFAR100(Dataset):
             self.data_type = 'seq'
             self.input_dim = self.data.shape[1]
         else:
-            raise ValueError(f"Not available data type for CIFAR100 in {needed_data_types}")
+            raise ValueError(f"No available data type for CIFAR100 in {needed_data_types}")
         self.label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
         self.label = self.label.reshape((self.label.size,))
 

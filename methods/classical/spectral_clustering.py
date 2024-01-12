@@ -18,7 +18,10 @@ class SpectralClustering(ClassicalMethod):
         self.device = cfg.get("global", "device")
     
     def fit(self, data):
-        # return skSpectralClustering(n_clusters=self.n_clusters, affinity=self.distance_type, n_init=10).fit_predict(data)
+        # sc = skSpectralClustering(n_clusters=self.n_clusters, affinity=self.distance_type)
+        # pred_labels = sc.fit_predict(data)
+        # sc_embed = sc.affinity_matrix_.toarray()
+        # return pred_labels, sc_embed
         return spectral_clustering(data, self.n_clusters, cut_type=self.cut_type, distance=self.distance_type, device=self.device)
 
 
