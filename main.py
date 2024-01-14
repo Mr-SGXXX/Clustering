@@ -65,9 +65,9 @@ def main():
         pretrain_features = None
         pretrain_start_time = None
         if method_flag == "classical":
-            method = method(cfg)
             train_start_time = time.time()
-            pred_labels, features = method.fit(dataset.data)
+            method = method(dataset, description, logger, cfg)
+            pred_labels, features = method.fit()
             acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
         elif method_flag == "deep":
             pretrain_start_time = time.time()

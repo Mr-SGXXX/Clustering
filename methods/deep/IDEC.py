@@ -22,13 +22,6 @@ class IDEC(DeepMethod):
     def __init__(self, dataset, description, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
-        if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
-            self.n_clusters = dataset.num_classes
-        else:
-            self.n_clusters = cfg.get("global", "n_clusters")
-            assert type(
-                self.n_clusters) is int, "n_clusters should be of type int"
-            assert self.n_clusters > 0, "n_clusters should be larger than 0"
         self.encoder_dims = cfg.get("IDEC", "encoder_dims")
         self.hidden_dim = cfg.get("IDEC", "hidden_dim")
         self.alpha = cfg.get("IDEC", "alpha")
@@ -172,8 +165,8 @@ class IDEC(DeepMethod):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     if iter_time % self.update_interval == 0:
-                        z, q = self.encode_dataset()
-                        p = target_distribution(q)  
+                        z, q_full = self.encode_dataset()
+                        p = target_distribution(q_full)  
                     iter_time += 1
                     data = data.to(self.device)
                     x_bar, q, _ = self(data)
@@ -197,7 +190,7 @@ class IDEC(DeepMethod):
                 )
                 if (epoch + 1) % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
-                y_pred = q.cpu().detach().numpy().argmax(1)
+                y_pred = q_full.cpu().detach().numpy().argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                             np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred

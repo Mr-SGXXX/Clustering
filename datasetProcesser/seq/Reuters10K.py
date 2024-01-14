@@ -18,6 +18,7 @@ class Reuters10K(Dataset):
         data = np.load(data_path, allow_pickle=True).item()
         self.data = data['data']
         self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
+        self.unlabel_data = None
         self.label = data['label']
         self.label = self.label.reshape((self.label.size,))
         self.input_dim = self.data.shape[1]

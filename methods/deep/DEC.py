@@ -20,13 +20,6 @@ class DEC(DeepMethod):
     def __init__(self, dataset, description, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
-        if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
-            self.n_clusters = dataset.num_classes
-        else:
-            self.n_clusters = cfg.get("global", "n_clusters")
-            assert type(
-                self.n_clusters) is int, "n_clusters should be of type int"
-            assert self.n_clusters > 0, "n_clusters should be larger than 0"
         self.encoder_dims = cfg.get("DEC", "encoder_dims")
         self.hidden_dim = cfg.get("DEC", "hidden_dim")
         self.alpha = cfg.get("DEC", "alpha")

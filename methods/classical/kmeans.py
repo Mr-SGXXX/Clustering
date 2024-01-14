@@ -1,17 +1,18 @@
 import numpy as np
+from logging import Logger
 from utils import config
 from sklearn.cluster import KMeans as skKMeans
 
 from .base import ClassicalMethod
 
 class KMeans(ClassicalMethod):
-    def __init__(self, cfg: config):
-        self.k = cfg.get("global", "n_clusters")
+    def __init__(self, dataset, description, logger:Logger, cfg: config):
+        super().__init__(dataset, description, logger, cfg)
         self.max_iterations = cfg.get("KMeans", "max_iterations")
 
-    def fit(self, data):
-        return skKMeans(n_clusters=self.k, max_iter=self.max_iterations).fit_predict(data), data
-        # return kmeans(data, self.k, self.max_iterations)
+    def fit(self):
+        return skKMeans(n_clusters=self.k, max_iter=self.max_iterations).fit_predict(self.dataset.data), self.data
+        # return kmeans(self.dataset.data, self.k, self.max_iterations)
 
 
 def kmeans(data, k, max_iterations=100, init='kmeans++'):

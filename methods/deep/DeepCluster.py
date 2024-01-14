@@ -40,18 +40,11 @@ class DeepCluster(DeepMethod):
                                  std=[0.229, 0.224, 0.225])
         ])
         self.batch_size = self.cfg.get("DeepCluster", "batch_size")
-        if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
-            n_clusters = dataset.num_classes
-        else:
-            n_clusters = cfg.get("global", "n_clusters")
-            assert type(
-                n_clusters) is int, "n_clusters should be of type int"
-            assert n_clusters > 0, "n_clusters should be larger than 0"
         clustering = self.cfg.get("DeepCluster", "clustering")
         if clustering == "PIC":
             self.clustering = PIC()
         elif clustering == "Kmeans":
-            self.clustering = Kmeans(n_clusters)
+            self.clustering = Kmeans(self.n_clusters)
         else:
             raise ValueError(
                 f"No available clustering `{clustering}` for DeepCluster")

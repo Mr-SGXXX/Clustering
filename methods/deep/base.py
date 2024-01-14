@@ -13,6 +13,13 @@ class DeepMethod(nn.Module):
         self.cfg = cfg
         self.device = cfg.get("global", "device")
         self.metrics = Metrics()
+        if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
+            self.n_clusters = dataset.num_classes
+        else:
+            self.n_clusters = cfg.get("global", "n_clusters")
+            assert type(
+                self.n_clusters) is int, "n_clusters should be of type int"
+            assert self.n_clusters > 0, "n_clusters should be larger than 0"
     
     def forward(self, x):
         raise NotImplementedError
