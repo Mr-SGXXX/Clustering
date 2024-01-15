@@ -25,24 +25,28 @@ from .utils import reassign_dataset
 
 # Each dataset here should be a `ClusteringDataset` class with following elements:
 #   name: the name of the dataset, str
-#   label: the label of the dataset, if label is not available, set it to None, numpy.ndarray
+#   label: the label of the dataset, if label is not available, set it to None, numpy.ndarray, default to None
 #   data: the data of the dataset containing the labeled and unlabeled data, numpy.ndarray
 #         if the dataset loads each data in the __getitem__ method, the `data_init` is suggested to be implemented
-#   unlabel_data: the unlabel data of the dataset, if no unlabel data, set it to None or don't set its value, numpy.ndarray
-#                 commomly, the unlabel data is only used in pretraining.
+#   unlabel_data: the unlabel data of the dataset, if no unlabel data, set it to None, numpy.ndarray, default to None
+#                 commonly, the unlabel data is only used in pretraining.
 #                 remember that the unlabel data must be the last part in the self.data
+#   total_length: the total length of the dataset, int
+#                 if the dataset loads each data in the __getitem__ method, the value of `total_length` is suggested to be set in the `__init__` method
+#   unlabel_length: the length of the unlabel data, int, default to 0
+#                   if the dataset loads each data in the __getitem__ method, the value of `unlabel_length` is suggested to be set in the `__init__` method
 #   data_type: the type of the data, should be one of ['seq', 'img', ...], str
 #   input_dim: the input dimension of the dataset
-#   num_classes: the number of classes of the dataset, it must
+#   num_classes: the number of classes of the dataset, int
 
 # The methods of the dataset class:
 #   __init__: initialize the dataset, need a config object as input and a flag list indicating what data type the dataset can accept
 #   __getitem__: return the data, label and index of the dataset, (torch.Tensor, torch.Tensor, torch.Tensor), 
-#                if the label is not available, return (torch.Tensor, None, torch.Tensor)
-#  data_init(): initialize the `data` of the dataset as `np.ndarray`, it should return None
-#  unlabeled_data_init(): initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return None
-#  pretrain(): set the dataset to pretrain mode, and it should return the `np.ndarray`
-#  clustering(): set the dataset to clustering mode, and it should return `np.ndarray`
+#                if the label is not available or those unlabeled data, return (torch.Tensor, None, torch.Tensor)
+#  data_init(): initialize the `data` of the dataset as `np.ndarray`, it should return the `np.ndarray`
+#  unlabeled_data_init(): initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return the `np.ndarray`
+#  pretrain(): set the dataset to pretrain mode, not suggested to change the default implementation
+#  clustering(): set the dataset to clustering mode, not suggested to change the default implementation
 #  __len__: return the length of the dataset, int, no suggesting to change the default implementation
 
 

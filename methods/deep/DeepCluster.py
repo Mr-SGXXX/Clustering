@@ -31,28 +31,29 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset, reassign_dataset
-from metrics import Metrics
+from metrics import normalized_mutual_info_score as nmi
 from utils import config
 
 from .backbone.DeepCluster_AlexNet import alexnet
 from .backbone.DeepCluster_VGG import vgg16
-from .utils.DeepCluster_utils import Kmeans, PIC, UnifLabelSampler
+from .utils.DeepCluster_utils import Kmeans, PIC, UnifLabelSampler, arrange_clustering
 from .base import DeepMethod
 
 
 class DeepCluster(DeepMethod):
     def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
-        backbone = self.cfg.get("DeepCluster", "arch")
+        self.backbone = self.cfg.get("DeepCluster", "arch")
         sobel = self.cfg.get("DeepCluster", "sobel")
-        if backbone == "alexnet":
+        if self.backbone == "alexnet":
             self.model = alexnet(sobel=sobel)
-        elif backbone == "vgg16":
+        elif self.backbone == "vgg16":
             self.model = vgg16(sobel=sobel)
         else:
             raise ValueError(
-                f"No available backbone `{backbone}` for DeepCluster")
+                f"No available backbone `{self.backbone}` for DeepCluster")
         self.fd = int(self.model.top_layer.weight.size()[1])
+        self.resume = self.cfg.get("DeepCluster", "resume")
         self.model.top_layer = None
         self.model.features = torch.nn.DataParallel(self.model.features)
         self.model.to(self.device)
@@ -73,17 +74,21 @@ class DeepCluster(DeepMethod):
             raise ValueError(
                 f"No available clustering `{clustering}` for DeepCluster")
 
-    def forward(self, x):
-        pass
 
     def pretrain(self):
         # the deepcluster is trained directly on the images with kmeans result as label, and doesn't need the pretrain step.
         # the author gives how to donwload the pretrained model
-        weight_path = os.path.join(self.cfg.get('global', 'weight_dir'), 'deepcluster_models')
-        if not os.path.exists(weight_path):
-            self.logger.info("Pretrained model not found, downloading DeepCluster pretrained model...")
-            os.system(f"bash ./scripts/download_DeepCluster_model.sh {weight_path}")
-        
+        if self.resume is not None and self.resume == "download":
+            weight_path = os.path.join(self.cfg.get('global', 'weight_dir'), 'deepcluster_models')
+            if not os.path.exists(weight_path):
+                self.logger.info("Pretrained model not found, downloading DeepCluster pretrained model...")
+                os.system(f"bash ./scripts/download_DeepCluster_model.sh {weight_path}")
+            else:
+                self.logger.info("Pretrained model found, skipping downloading...")
+            weight_path = os.path.join(weight_path, self.backbone)
+            self.resume = os.path.join(weight_path, 'checkpoint.pth.tar')
+        return None
+            
 
     def encode_dataset(self):
         self.model.eval()
@@ -99,6 +104,8 @@ class DeepCluster(DeepMethod):
         return latent
 
     def train_model(self):
+        learning_rate = self.cfg.get("DeepCluster", "learn_rate")
+        weight_decay = self.cfg.get("DeepCluster", "weight_decay")
         optimizer = optim.SGD(
             filter(lambda x: x.requires_grad, self.model.parameters()),
             lr=self.cfg.get("DeepCluster", "lr"),
@@ -106,26 +113,108 @@ class DeepCluster(DeepMethod):
             weight_decay=10**self.cfg.get("DeepCluster", "weight_decay"),
         )
         criterion = nn.CrossEntropyLoss().to(self.device)
-        for epoch in range(self.cfg.get("DeepCluster", "epochs")):
-            self.model.train()
+        start_epoch = 0
+        if self.resume is not None:
+            if os.path.isfile(self.resume):
+                self.logger.info("=> loading checkpoint '{}'".format(self.resume))
+                checkpoint = torch.load(self.resume)
+                start_epoch = checkpoint['epoch']
+                # remove top_layer parameters from checkpoint
+                for key in checkpoint['state_dict']:
+                    if 'top_layer' in key:
+                        del checkpoint['state_dict'][key]
+                self.model.load_state_dict(checkpoint['state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                self.logger.info("=> loaded checkpoint '{}' (epoch {})"
+                    .format(self.resume, checkpoint['epoch']))
+            else:
+                self.logger.info("=> no checkpoint found at '{}'".format(self.resume))
 
-            # remove head
-            self.model.top_layer = None
-            self.model.classifier = nn.Sequential(
-                *list(self.model.classifier.children())[:-1])
+        y_pred_last = None
+        delta_label = 0
+        with tqdm(range(start_epoch, self.cfg.get("DeepCluster", "epochs")), desc="Training DeepCluster Epoch", dynamic_ncols=True, leave=False) as epochloader:
+            for epoch in epochloader:
+                self.model.train()
 
-            # get the features for the whole dataset
-            features = self.encode_dataset()
+                # remove head
+                self.model.top_layer = None
+                self.model.classifier = nn.Sequential(
+                    *list(self.model.classifier.children())[:-1])
 
-            # cluster the features
-            clustering_loss = self.clustering.cluster(
-                features.cpu().detach().numpy(), self.logger)
+                # get the features for the whole dataset
+                features = self.encode_dataset()
 
-            # assign pseudo-labels
-            train_dataset = reassign_dataset(self.dataset, self.clustering.images_lists)
+                # cluster the features
+                clustering_loss = self.clustering.cluster(features.cpu().detach().numpy(), self.logger)
+                y_pred = arrange_clustering(self.clustering.images_lists)
 
-            # uniformly sample per target
-            sampler = UnifLabelSampler(int(self.reassign * len(train_dataset)),
-                                   self.clustering.images_lists)
-            
-            train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, sampler=sampler, num_workers=self.workers, pin_memory=True)
+                # evaluate clustering performance
+                if self.cfg.get("global", "record_sc"):
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, features, y_true=self.dataset.label)
+                else:
+                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+
+                # assign pseudo-labels
+                train_dataset = reassign_dataset(self.dataset, self.clustering.images_lists)
+
+                # uniformly sample per target
+                sampler = UnifLabelSampler(int(self.reassign * len(train_dataset)),
+                                    self.clustering.images_lists)
+                
+                train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, sampler=sampler, num_workers=self.workers, pin_memory=True)
+
+                # set last fully connected layer
+                mlp = list(self.model.classifier.children())
+                mlp.append(nn.ReLU(inplace=True).to(self.device))
+                self.model.classifier = nn.Sequential(*mlp)
+                self.model.top_layer = nn.Linear(self.fd, len(self.clustering.images_lists))
+                self.model.top_layer.weight.data.normal_(0, 0.01)
+                self.model.top_layer.bias.data.zero_()
+                self.model.top_layer.to(self.device)
+
+                # train network with clusters as pseudo-labels
+                optimizer_tl = optim.SGD(
+                    self.model.top_layer.parameters(),
+                    lr=learning_rate,
+                    weight_decay=10**weight_decay,
+                )
+                total_loss = 0
+                with tqdm(train_dataloader, desc="Training DeepCluster Batch", dynamic_ncols=True, leave=False) as batchloader:
+                    for i, (input_tensor, target_tensor, _) in enumerate(batchloader):
+                        input_tensor = input_tensor.to(self.device)
+                        target_tensor = target_tensor.to(self.device)
+                        target_tensor = torch.squeeze(target_tensor)
+
+                        output = self.model(input_tensor)
+                        loss = criterion(output, target_tensor)
+
+                        # compute gradient and do SGD step
+                        optimizer.zero_grad()
+                        optimizer_tl.zero_grad()
+                        loss.backward()
+                        total_loss += loss.item()
+                        optimizer.step()
+                        optimizer_tl.step()
+                        
+                        if i % 200 == 0:
+                            self.logger.info(f"Epoch {epoch}, batch {i}, loss: {loss.item()}")
+                
+                delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                y_pred_last = y_pred
+
+                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last)}\n')
+                self.logger.info(f"Clustering Loss: {clustering_loss}\tConvNet Loss: {total_loss / len(train_dataloader):.4f}")
+
+                # save running checkpoint
+                weight_dir = os.path.exists(os.path.join(self.cfg.get("global", "weight_dir"), "deepcluster_checkpoints"))
+                if not weight_dir:
+                    os.makedirs(weight_dir)
+                torch.save({'epoch': epoch + 1,
+                    'arch': self.backbone,
+                    'state_dict': self.model.state_dict(),
+                    'optimizer' : optimizer.state_dict()},
+                os.path.join(weight_dir, f'checkpoint_{self.description}.pth.tar'))
+        clustering_loss = self.clustering.cluster(features.cpu().detach().numpy(), self.logger)
+        y_pred = arrange_clustering(self.clustering.images_lists)
+        return y_pred, features
+                

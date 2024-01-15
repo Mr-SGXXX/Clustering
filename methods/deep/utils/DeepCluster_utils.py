@@ -163,7 +163,7 @@ class Kmeans(object):
             self.images_lists[I[i]].append(i)
 
         if logger is not None:
-            print('k-means time: {0:.0f} s'.format(time.time() - end))
+            logger.info('k-means time: {0:.0f} s'.format(time.time() - end))
 
         return loss
 
@@ -323,7 +323,7 @@ class PIC(object):
             self.images_lists.append(images_lists[c])
 
         if logger is not None:
-            print('pic time: {0:.0f} s'.format(time.time() - end))
+            logger.info('pic time: {0:.0f} s'.format(time.time() - end))
         return 0
 
 

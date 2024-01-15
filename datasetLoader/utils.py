@@ -27,6 +27,13 @@ from datasetLoader import ClusteringDataset
 from .base import ClusteringDataset
 
 class ReassignDataset(Dataset):
+    """
+    A dataset that reassigns the label of a ClusteringDataset
+
+    Args:
+        dataset (ClusteringDataset): The dataset to be reassigned
+        new_label (typing.Union[torch.Tensor, np.ndarray]): The new label
+    """
     def __init__(self, dataset:ClusteringDataset, new_label:typing.Union[torch.Tensor, np.ndarray, None]):
         assert type(new_label) == torch.Tensor or type(new_label) == np.ndarray, "new_label must be a torch.Tensor or np.ndarray"
         assert new_label.shape == dataset.label.shape, "new_label must have the same shape as dataset.label"
@@ -44,4 +51,7 @@ class ReassignDataset(Dataset):
             return data, torch.tensor(self.label[index]), idx
 
 def reassign_dataset(dataset: ClusteringDataset, new_label:typing.Union[torch.Tensor, np.ndarray]):
+    """
+    A function that reassigns the label of a ClusteringDataset
+    """
     return ReassignDataset(dataset, new_label)

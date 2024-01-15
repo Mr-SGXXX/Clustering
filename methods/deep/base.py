@@ -24,8 +24,9 @@ from utils import config
 from metrics import Metrics
 from datasetLoader import ClusteringDataset
 
+
 class DeepMethod(nn.Module):
-    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
+    def __init__(self, dataset: ClusteringDataset, description: str, logger: Logger, cfg: config):
         super().__init__()
         self.dataset = dataset
         self.description = description
@@ -41,21 +42,36 @@ class DeepMethod(nn.Module):
             assert type(
                 self.n_clusters) is int, "n_clusters should be of type int"
             assert self.n_clusters > 0, "n_clusters should be larger than 0"
-    
+
     def forward(self, x):
+        """
+        This is the forward pass of the model
+
+        If you don't use it, you can just leave it aside.
+        """
         raise NotImplementedError
-    # This is the forward pass of the model
-    
+
+
     def pretrain(self):
+        """
+        This method is used to pretrain the model.
+
+        It should return the hidden layer representation of the whole dataset.
+
+        There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
+
+        For those methods that do not need pretraining, just return None.
+        """
         raise NotImplementedError
-    # This method is used to pretrain the model.
-    # It should return the hidden layer representation of the whole dataset.
-    # There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
-    # For those methods that do not need pretraining, just return None.
-    
+
     def train_model(self):
+        """
+        This method is used to train the model.
+
+        It should return the predicted labels, features.
+
+        There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.
+       
+        If ground truth is available, the `y_true` should be passed to the `update` method of the metrics.
+        """
         raise NotImplementedError
-    # This method is used to train the model.
-    # It should return the predicted labels, features.
-    # There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.
-    # If ground truth is available, the `y_true` should be passed to the `update` method of the metrics.

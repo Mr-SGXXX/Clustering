@@ -33,7 +33,21 @@ from utils import config
 def draw_charts(rst_metrics:typing.Union[Metrics, None],
                 pretrain_features:typing.Union[torch.Tensor, np.ndarray, None],
                 features:typing.Union[torch.Tensor, np.ndarray, None],
-                pred_labels, true_labels, description, cfg:config):
+                pred_labels:np.ndarray, true_labels:typing.Union[np.ndarray, None], description:str, cfg:config):
+    """
+    Generate figures for clustering results
+    
+    Args:
+        rst_metrics (typing.Union[Metrics, None]): The metrics of the clustering results, None if not available
+        pretrain_features (typing.Union[torch.Tensor, np.ndarray, None]): The features before clustering, None if not available
+        features (typing.Union[torch.Tensor, np.ndarray, None]): The features after clustering, None if not available
+        pred_labels (np.ndarray): The predicted labels
+        true_labels (typing.Union[np.ndarray, None]): The ground truth labels, None if not available
+        description (str): The description of the experiment
+        cfg (config): The config of the experiment
+    Returns:
+        figure_paths (list): The paths of the generated figures
+    """
     figure_dir = os.path.join(cfg.get("global", "figure_dir"), description)
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
@@ -64,14 +78,15 @@ def draw_charts(rst_metrics:typing.Union[Metrics, None],
                 losses_list.append(rst_metrics.PretrainLoss[loss_name].val_list)
             gen_pretrain_loss_chart(losses_list, loss_names, pretrain_loss_figure_path)
             figure_paths.append(pretrain_loss_figure_path)
-        score_dict = {
-            'ACC': rst_metrics.ACC.val_list,
-            'NMI': rst_metrics.NMI.val_list,
-            'ARI': rst_metrics.ARI.val_list,
-            'SC': rst_metrics.SC.val_list,
-        }
-        gen_clustering_chart_metrics_score(rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
-        figure_paths.append(clustering_score_figure_path)
+        if true_labels is not None:
+            score_dict = {
+                'ACC': rst_metrics.ACC.val_list,
+                'NMI': rst_metrics.NMI.val_list,
+                'ARI': rst_metrics.ARI.val_list,
+                'SC': rst_metrics.SC.val_list,
+            }
+            gen_clustering_chart_metrics_score(rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
+            figure_paths.append(clustering_score_figure_path)
 
     if features is not None:
         if type(features) == torch.Tensor:

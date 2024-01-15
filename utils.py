@@ -59,6 +59,11 @@ class config:
     
     @classmethod
     def init_by_path(self, config_path, split_symbol=','):
+        """
+        Initialize the configuration object by the configuration file path.
+        :param config_path: str, configuration file path
+        :param split_symbol: str, delimiter of the configuration file
+        """
         cfg = CaseSensitiveConfigParser()
         cfg.read(config_path)
         return self(cfg, split_symbol)

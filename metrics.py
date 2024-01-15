@@ -55,6 +55,11 @@ class Metrics:
         self.clustering_time_cost = 0
 
     def update_pretrain_loss(self, **kwargs):
+        """
+        In each pretrain epoch, update every pretrain loss in the metrics, which will be used for generating pretrain loss figure.
+
+        The loss name will be auto input in the type of the key of the parameter.
+        """
         start_time = time()
         for key in kwargs.keys():
             if key not in self.PretrainLoss:
@@ -63,6 +68,11 @@ class Metrics:
         self.pretrain_time_cost += time() - start_time
 
     def update_loss(self, **kwargs):
+        """
+        In each clustering epoch, update every loss in the metrics, which will be used for generating loss figure.
+
+        The loss name will be auto input in the type of the key of the parameter.
+        """
         start_time = time()
         for key in kwargs.keys():
             if key not in self.Loss:
@@ -71,6 +81,9 @@ class Metrics:
         self.clustering_time_cost += time() - start_time
 
     def update(self, y_pred, features=None, y_true=None):
+        """
+        In each clustering epoch, update every metric in the metrics, which will be used for generating metrics figures.
+        """
         start_time = time()
         assert features is None or type(features) is np.ndarray or type(features) is torch.Tensor
         if features is not None:

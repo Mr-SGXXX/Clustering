@@ -194,7 +194,7 @@ class EDESC(DeepMethod):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 if epoch % 10 == 0:
                     self.logger.info(
-                        f'Epoch {epoch + 1}: Acc {acc:.4f} NMI {nmi:.4f} ARI {ari:.4f} Delta_label {delta_label:.4f}')
+                        f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last)}')
                 total_reconstr_loss = 0
                 total_kl_loss = 0
                 total_loss_d1 = 0

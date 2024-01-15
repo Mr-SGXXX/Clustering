@@ -219,7 +219,7 @@ class IDEC(DeepMethod):
                             np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last)}")
                 if delta_label < self.tol and es_count > 5:
                     self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                     stop_train_flag = True
