@@ -31,6 +31,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 
+from datasetLoader import ClusteringDataset
 from utils import config
 
 from .base import DeepMethod
@@ -41,7 +42,7 @@ from .utils.DEC_utils import target_distribution
 
 
 class DEC(DeepMethod):
-    def __init__(self, dataset, description, logger: Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
         self.encoder_dims = cfg.get("DEC", "encoder_dims")
@@ -65,7 +66,7 @@ class DEC(DeepMethod):
     
     def encode_dataset(self):
         self.eval()
-        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False)
+        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False, num_workers=self.workers)
         latent_list = []
         assign_list = []
         with torch.no_grad():
@@ -80,6 +81,7 @@ class DEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
+        self.dataset.pretrain()
         pretrain_path = self.cfg.get("DEC", "pretrain_file")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
@@ -97,7 +99,7 @@ class DEC(DeepMethod):
             
             if self.cfg.get("DEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
-                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True)
+                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
                 with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                     for i in level_loader:
                         optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -163,12 +165,13 @@ class DEC(DeepMethod):
         return self.encode_dataset()[0]
 
     def train_model(self):
+        self.dataset.clustering()
         self.ae.defreeze()
         es_count = 0
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
         # optimizer = optim.Adam(self.parameters(), lr=self.lr)
         train_loader = DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=True)
+            self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
 
         z, _ = self.encode_dataset()
         y_pred= self.clustering_layer.kmeans_init(z)
@@ -196,7 +199,7 @@ class DEC(DeepMethod):
                     optimizer.step()
                 total_loss /= len(train_loader)
                 self.metrics.update_loss(total_loss=total_loss)
-                if (epoch + 1) % 10 == 0:
+                if epoch % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta_label {delta_label:.4f}")
                 if delta_label < self.tol and es_count > 5:
                     self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")

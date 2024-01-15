@@ -18,23 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import torch
-from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import numpy as np
 import os
 
+from ..base import ClusteringDataset
 from .utils import ResNet50Extractor
 from utils import config
 
-class CIFAR10(Dataset):
+class CIFAR10(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        super().__init__(cfg, needed_data_types)
         self.name = 'CIFAR10'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True)
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         self.data = self.data.transpose((0, 3, 1, 2))
-        self.unlabel_data = None
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
@@ -58,9 +58,6 @@ class CIFAR10(Dataset):
         self.label = self.label.reshape((self.label.size,))
 
         self.num_classes = len(np.unique(self.label))
-
-    def __len__(self):
-        return self.data.shape[0]
     
     def __getitem__(self, index):
         return torch.from_numpy(np.array(self.data[index])), \

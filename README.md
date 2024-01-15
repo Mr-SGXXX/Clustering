@@ -66,7 +66,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [SPICE (TIP 2022)](https://arxiv.org/pdf/2103.09382v1.pdf) | [Reference Code](https://github.com/niuchuangnn/SPICE) 
 - [ ] [ProPos (TPAMI 2022)](https://arxiv.org/pdf/2111.11821.pdf) | [Reference Code](https://github.com/Hzzone/ProPos) 
 - [ ] [DeepDPM (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Ronen_DeepDPM_Deep_Clustering_With_an_Unknown_Number_of_Clusters_CVPR_2022_paper.pdf) | [Reference Code](https://github.com/BGU-CS-VIL/DeepDPM) 
-- [x] [EDESC (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.pdf) | [Reference Code](https://github.com/JinyuCai95/EDESC-pytorch) 
+- [x] [EDESC (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.pdf) | [Reference Code](https://github.com/JinyuCai95/EDESC-pytorch) | [My Implementation](./methods/deep/EDESC.py)
 
 *In the code provided by the authors, they gave a pretrained weight for Reuters10K, with it, we can gain a nice result sometimes not lower than the article for Reuters10K dataset, but pretraining from start following the code setting in the article instead of using the pretrain weight, the score is hardly as good as what it should be, but similar to this repositary. Besides, the result is not stable.*
 - [ ] [VaDeSC (ICLR 2022)](https://openreview.net/pdf?id=RQ428ZptQfU) | [Reference Code](https://github.com/i6092467/vadesc) 
@@ -91,12 +91,12 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [SpectralNet (ICLR 2018)](https://openreview.net/pdf?id=HJ_aoCyRZ) | [Reference Code](https://github.com/shaham-lab/SpectralNet) 
 - [ ] [DSC-Nets (NIPS 2017)](http://papers.neurips.cc/paper/6608-deep-subspace-clustering-networks.pdf) | [Reference Code](https://github.com/panji1990/Deep-subspace-clustering-networks)
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Reference Code](https://arxiv.org/pdf/1704.06327.pdf) 
-- [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Reference Code](https://github.com/XifengGuo/IDEC) 
+- [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Reference Code](https://github.com/XifengGuo/IDEC) | [My Implementation](./methods/deep/IDEC.py)
   
 *In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process. Because the IDEC use the same pretrain process as the DEC, in order to save time, the IDEC will directly use the DEC pretrain weight*
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Reference Code](https://github.com/slim1017/VaDE) 
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Reference Code](https://github.com/boyangumn/DCN-New) 
-- [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Reference Code](https://github.com/piiswrong/dec/tree/master) 
+- [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Reference Code](https://github.com/piiswrong/dec/tree/master) | [My Implementaion](./methods/deep/DEC.py)
 
 *In this method, the pretrain process is the most important part, whether the features are learned well by pretraining is directly correspond to whether the result is good. With a reproduced greedy layer-wise pretraining referred to the DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Reference Code](https://github.com/jwyang/JULE.torch)
@@ -144,10 +144,10 @@ Each method in each dataset will be tried for several times for fair. For deep m
 #### Reuters10K
 |       Method        | Test Times |          ACC           |          NMI           |          ARI           |
 | :-----------------: | :--------: | :--------------------: | :--------------------: | :--------------------: |
-|        EDESC        |     16     | 0.7687, 0.6933(0.0542) | 0.4686, 0.3983(0.0540) | 0.5416, 0.4461(0.0754) |
+|        EDESC        |     16     | 0.7632, 0.6978(0.0575) | 0.5849, 0.4686(0.0591) | 0.5927, 0.4826(0.0730) |
 |         DEC         |     16     | 0.7366, 0.6440(0.0456) | 0.4879, 0.4228(0.0417) | 0.4591, 0.3936(0.0452) |
-| Spectral Clustering |     4      | 0.4733, 0.4733(0.0000) | 0.2182, 0.2182(0.0000) | 0.0694, 0.0694(0.0000) |
-|       KMeans        |     16     | 0.5877, 0.5433(0.0207) | 0.5023, 0.4857(0.0109) | 0.4556, 0.4037(0.0220) |
+| Spectral Clustering |     8      | 0.4441, 0.4441(0.0000) | 0.0905, 0.0905(0.0000) | 0.0175, 0.0175(0.0000) |
+|       KMeans        |     16     | 0.5622, 0.5301(0.0162) | 0.3549, 0.3243(0.0195) | 0.2655, 0.2211(0.0190) |
 
 
 

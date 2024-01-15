@@ -6,6 +6,7 @@ faiss-gpu==1.7.2
 filelock==3.13.1
 fonttools==4.47.0
 fsspec==2023.12.2
+h5py==3.10.0
 idna==3.6
 imageio==2.33.1
 importlib-metadata==7.0.1

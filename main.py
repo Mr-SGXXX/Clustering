@@ -25,7 +25,7 @@ import os
 import traceback
 
 from methods import *
-from datasetProcesser import DATASETS
+from datasetLoader import DATASETS
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
 from metrics import evaluate
 from figures import draw_charts

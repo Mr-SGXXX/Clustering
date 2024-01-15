@@ -18,14 +18,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import torch
-from torch.utils.data import Dataset
 import numpy as np
 import os
 
+from ..base import ClusteringDataset
 from utils import config
 
-class Reuters10K(Dataset):
+class Reuters10K(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
+        super().__init__(cfg, needed_data_types)
         self.name = 'Reuters10K'
         if 'seq' not in needed_data_types:
             raise ValueError(f"Not available data type for reuters10k in {needed_data_types}")
@@ -37,14 +38,10 @@ class Reuters10K(Dataset):
         data = np.load(data_path, allow_pickle=True).item()
         self.data = data['data']
         self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
-        self.unlabel_data = None
         self.label = data['label']
         self.label = self.label.reshape((self.label.size,))
         self.input_dim = self.data.shape[1]
         self.num_classes = len(np.unique(self.label))
-
-    def __len__(self):
-        return self.data.shape[0]
 
     def __getitem__(self, index):
         return torch.from_numpy(np.array(self.data[index])), \

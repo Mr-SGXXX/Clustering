@@ -20,6 +20,10 @@
 from .EDESC import EDESC
 from .DEC import DEC
 from .IDEC import IDEC
+from .DeepCluster import DeepCluster
+from .CC import CC
+from .DivClust import DivClust
+from .IIC import IIC
 
 """
 The Dictionary of Deep clustering methods
@@ -36,6 +40,7 @@ If ground truth is available, the `y_true` should be passed to the `update` meth
 the args must be the same as the base class in `base.py`.
 """
 DEEP_METHODS = {
+    "DivClust": DivClust,
     # Cai J, Fan J, Guo W, et al. Efficient deep embedded subspace clustering
     # CVPR. 2022: 1-10.
     # Link: https://openaccess.thecvf.com/content/CVPR2022/html/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.html
@@ -48,6 +53,9 @@ DEEP_METHODS = {
     # IJCAI. 2017, 17: 1753-1759.
     # Link: https://www.ijcai.org/proceedings/2017/0243.pdf
     "IDEC": IDEC,
+    "IIC": IIC,
+    "CC": CC,
+    "DeepCluster": DeepCluster,
 }
 
 """

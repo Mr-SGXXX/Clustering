@@ -26,12 +26,13 @@ from tqdm import tqdm
 import numpy as np
 import os
 
+from datasetLoader import ClusteringDataset
 from utils import config
 
 from .base import DeepMethod
 
 class IIC(DeepMethod):
-    def __init__(self, dataset, description, logger: Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         pass
 

@@ -17,3 +17,31 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import torch
+from torch.utils.data import Dataset
+import numpy as np
+import typing
+
+from datasetLoader import ClusteringDataset
+
+from .base import ClusteringDataset
+
+class ReassignDataset(Dataset):
+    def __init__(self, dataset:ClusteringDataset, new_label:typing.Union[torch.Tensor, np.ndarray, None]):
+        assert type(new_label) == torch.Tensor or type(new_label) == np.ndarray, "new_label must be a torch.Tensor or np.ndarray"
+        assert new_label.shape == dataset.label.shape, "new_label must have the same shape as dataset.label"
+        self.dataset = dataset
+        self.label = new_label
+    
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self, index):
+        data, _, idx = self.dataset[index]
+        if self.label is None:
+            return data, None, idx
+        else:
+            return data, torch.tensor(self.label[index]), idx
+
+def reassign_dataset(dataset: ClusteringDataset, new_label:typing.Union[torch.Tensor, np.ndarray]):
+    return ReassignDataset(dataset, new_label)

@@ -17,11 +17,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from utils import config
 from logging import Logger
 
+from datasetLoader import ClusteringDataset
+from utils import config
+
+
 class ClassicalMethod:
-    def __init__(self, dataset, description, logger:Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         self.dataset = dataset
         self.cfg = cfg
         self.description = description

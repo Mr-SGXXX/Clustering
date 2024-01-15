@@ -31,8 +31,10 @@ from logging import Logger
 import numpy as np
 from tqdm import tqdm
 
+from datasetLoader import ClusteringDataset
 from metrics import Metrics
 from utils import config
+
 from .backbone.EDESC_AE import EDESC_AE
 from .loss.EDESC_loss import D_constraint1, D_constraint2
 from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
@@ -70,7 +72,7 @@ class EDESC(DeepMethod):
 
     """
 
-    def __init__(self, dataset, description, logger: Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
         self.encoder_dims = cfg.get("EDESC", "encoder_dims")
@@ -87,13 +89,13 @@ class EDESC(DeepMethod):
                            self.decoder_dims, self.hidden_dim).to(self.device)
 
         # Subspace bases proxy
-        # TODO: I think the shape of the parameter should be (hidden_dim, n_clusters * d)
+        # I think the shape of the parameter should be (hidden_dim, n_clusters * d)
         self.D = Parameter(torch.Tensor(
             self.hidden_dim, self.n_clusters * self.d)).to(self.device)
 
     def encode_dataset(self):
         self.eval()
-        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False)
+        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False, num_workers=self.workers)
         latent_list = []
         assign_list = []
         with torch.no_grad():
@@ -114,11 +116,11 @@ class EDESC(DeepMethod):
         Returns:
             z (torch.Tensor): Hidden layer representation of whole dataset.
         """
-
+        self.dataset.pretrain()
         self.train()
         model = self.ae
         train_loader = DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=True)
+            self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
         optimizer = Adam(model.parameters(), lr=self.lr)
         with tqdm(range(50), desc="Pretrain AE", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
@@ -152,10 +154,11 @@ class EDESC(DeepMethod):
             metrics (Metrics): Metrics object for evaluation.
 
         """
+        self.dataset.clustering()
         # self.ae.load_state_dict(torch.load(
         #     "weight/reuters.pkl", map_location=self.device))
         train_loader = DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=False)
+            self.dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.workers)
         # d_cons1 = D_constraint1()
         # d_cons2 = D_constraint2()
 

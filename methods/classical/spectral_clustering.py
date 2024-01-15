@@ -26,12 +26,14 @@ from sklearn.metrics import pairwise_distances
 from logging import Logger
 import typing
 import numpy as np
+
+from datasetLoader import ClusteringDataset
 from utils import config
 
 from .base import ClassicalMethod
 
 class SpectralClustering(ClassicalMethod):
-    def __init__(self, dataset, description, logger:Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.cut_type = cfg.get("SpectralClustering", "cut_type")
         self.distance_type = cfg.get("SpectralClustering", "distance_type")

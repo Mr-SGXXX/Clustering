@@ -30,17 +30,18 @@ from tqdm import tqdm
 import numpy as np
 import os
 
+from datasetLoader import ClusteringDataset, reassign_dataset
 from metrics import Metrics
 from utils import config
 
 from .backbone.DeepCluster_AlexNet import alexnet
 from .backbone.DeepCluster_VGG import vgg16
-from .utils.DeepCluster_utils import Kmeans, PIC, cluster_assign
+from .utils.DeepCluster_utils import Kmeans, PIC, UnifLabelSampler
 from .base import DeepMethod
 
 
 class DeepCluster(DeepMethod):
-    def __init__(self, dataset, description, logger: Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         backbone = self.cfg.get("DeepCluster", "arch")
         sobel = self.cfg.get("DeepCluster", "sobel")
@@ -61,6 +62,7 @@ class DeepCluster(DeepMethod):
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
         ])
+        self.reassign = self.cfg.get("DeepCluster", "reassign")
         self.batch_size = self.cfg.get("DeepCluster", "batch_size")
         clustering = self.cfg.get("DeepCluster", "clustering")
         if clustering == "PIC":
@@ -85,7 +87,7 @@ class DeepCluster(DeepMethod):
 
     def encode_dataset(self):
         self.model.eval()
-        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False)
+        train_loader = DataLoader(self.dataset, self.batch_size, shuffle=False, num_workers=self.workers)
         latent_list = []
         with torch.no_grad():
             for data, _, _ in tqdm(train_loader, desc="Encoding dataset", dynamic_ncols=True, leave=False):
@@ -104,8 +106,6 @@ class DeepCluster(DeepMethod):
             weight_decay=10**self.cfg.get("DeepCluster", "weight_decay"),
         )
         criterion = nn.CrossEntropyLoss().to(self.device)
-        train_loader = DataLoader(
-            self.dataset, self.batch_size, pin_memory=True)
         for epoch in range(self.cfg.get("DeepCluster", "epochs")):
             self.model.train()
 
@@ -122,4 +122,10 @@ class DeepCluster(DeepMethod):
                 features.cpu().detach().numpy(), self.logger)
 
             # assign pseudo-labels
-            train_dataset = cluster_assign()
+            train_dataset = reassign_dataset(self.dataset, self.clustering.images_lists)
+
+            # uniformly sample per target
+            sampler = UnifLabelSampler(int(self.reassign * len(train_dataset)),
+                                   self.clustering.images_lists)
+            
+            train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, sampler=sampler, num_workers=self.workers, pin_memory=True)

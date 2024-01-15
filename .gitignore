@@ -9,3 +9,5 @@ cfg/email.cfg
 .vscode/launch.json
 
 !data/Reuters10K
+!data/ImageNet-10
+!data/ImageNet-Dogs

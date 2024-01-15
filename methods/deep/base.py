@@ -22,9 +22,10 @@ from logging import Logger
 
 from utils import config
 from metrics import Metrics
+from datasetLoader import ClusteringDataset
 
 class DeepMethod(nn.Module):
-    def __init__(self, dataset, description, logger: Logger, cfg: config):
+    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__()
         self.dataset = dataset
         self.description = description
@@ -32,6 +33,7 @@ class DeepMethod(nn.Module):
         self.cfg = cfg
         self.device = cfg.get("global", "device")
         self.metrics = Metrics()
+        self.workers = cfg.get("global", "workers")
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
             self.n_clusters = dataset.num_classes
         else:

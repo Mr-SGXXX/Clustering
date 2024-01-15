@@ -17,16 +17,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from .MNIST import MNIST
-from .FashionMNIST import FashionMNIST
-from .CIFAR10 import CIFAR10
-from .CIFAR100 import CIFAR100
-from .STL10 import STL10
 
-IMG_DATASETS = {
-    "MNIST": MNIST,
-    "FashionMNIST": FashionMNIST,
-    "CIFAR10": CIFAR10,
-    "CIFAR100": CIFAR100,
-    "STL10": STL10,
-}
+from utils import config
+from ..base import ClusteringDataset
+
+class ImageNet_10(ClusteringDataset):
+    def __init__(self, cfg: config, needed_data_types: list):
+        super().__init__(cfg, needed_data_types)
+        pass

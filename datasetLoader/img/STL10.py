@@ -18,23 +18,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import torch
-from torch.utils.data import Dataset
 import torchvision.datasets as datasets
 import numpy as np
 import os 
 
+from ..base import ClusteringDataset
 from .utils import ResNet50Extractor, extract_hog_features, extract_color_map_features
 from utils import config
 
-class STL10(Dataset):
+class STL10(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         self.name = 'STL10'
         data_dir = cfg.get("global", "dataset_dir")
         train_dataset = datasets.STL10(data_dir, split='train', download=True)
         unlabel_dataset = datasets.STL10(data_dir, split='unlabeled', download=True)
         test_dataset = datasets.STL10(data_dir, split='test', download=True)
-        self.data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
+        self.label_data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
         self.unlabel_data = unlabel_dataset.data.numpy()
+        self.data = np.concatenate((self.label_data, self.unlabel_data), axis=0)
         if 'img' in needed_data_types:
             self.data_type = 'img'
             self.input_dim = self.data.shape[1:]
@@ -74,9 +75,6 @@ class STL10(Dataset):
         self.label = self.label.reshape((self.label.size,))
 
         self.num_classes = len(np.unique(self.label))
-
-    def __len__(self):
-        return self.data.shape[0]
     
     def __getitem__(self, index):
         return torch.from_numpy(np.array(self.data[index])), \

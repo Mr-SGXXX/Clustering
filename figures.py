@@ -56,7 +56,7 @@ def draw_charts(rst_metrics:typing.Union[Metrics, None],
                 losses_list.append(rst_metrics.Loss[loss_name].val_list)
             gen_loss_chart(losses_list, loss_names, clustering_loss_figure_path)
             figure_paths.append(clustering_loss_figure_path)
-        if len(rst_metrics.PretrainLoss) > 1:
+        if len(rst_metrics.PretrainLoss) >= 1:
             losses_list = []
             loss_names = []
             for loss_name in rst_metrics.PretrainLoss:
