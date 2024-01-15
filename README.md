@@ -1,4 +1,4 @@
-# Clustering
+# Clustering Methods Collection & Reproduciton
 
 __Notice: The repository is far from completed, all codes I provided are just for share and will often be changed. And I do not promise any performance and accurate reproduction.__
 
@@ -87,7 +87,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [SCAN (ECCV 2020)](https://arxiv.org/abs/2005.12320) | [Reference Code](https://github.com/wvangansbeke/Unsupervised-Classification) 
 - [ ] [IIC (ICCV 2019)](http://openaccess.thecvf.com/content_ICCV_2019/papers/Ji_Invariant_Information_Clustering_for_Unsupervised_Image_Classification_and_Segmentation_ICCV_2019_paper.pdf) | [Reference Code](https://github.com/xu-ji/IIC) 
 - [ ] [DEC-DA (ACML 2018)](http://proceedings.mlr.press/v95/guo18b/guo18b.pdf) | [Reference Code](https://github.com/XifengGuo/DEC-DA) 
-- [ ] [DeepCluster (ECCV 2018)](https://arxiv.org/abs/1807.05520) | [Reference Code](https://github.com/facebookresearch/deepcluster) 
+- [x] [DeepCluster (ECCV 2018)](https://arxiv.org/abs/1807.05520) | [Reference Code](https://github.com/facebookresearch/deepcluster) | [My Implementation](./methods/deep/DeepCluster.py)
 - [ ] [SpectralNet (ICLR 2018)](https://openreview.net/pdf?id=HJ_aoCyRZ) | [Reference Code](https://github.com/shaham-lab/SpectralNet) 
 - [ ] [DSC-Nets (NIPS 2017)](http://papers.neurips.cc/paper/6608-deep-subspace-clustering-networks.pdf) | [Reference Code](https://github.com/panji1990/Deep-subspace-clustering-networks)
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Reference Code](https://arxiv.org/pdf/1704.06327.pdf) 
