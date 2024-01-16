@@ -34,7 +34,7 @@ from utils import email_reminder, get_logger, make_dir, get_args
 
 def main():
     # initialize the configuration
-    args, cfg = get_args()
+    _, cfg = get_args()
     make_dir(cfg)
     start_time = time.time()
     description = (
@@ -45,7 +45,7 @@ def main():
     ) + f"_{int(start_time)}"
     print(f"Experiment: {description} is running...")
     logger, log_path = get_logger(
-        cfg.get("global", "log_dir"), description, std_out=False)
+        cfg.get("global", "log_dir"), description, std_out=cfg.get("global", "log_std_out"))
     logger.info(
         f"Experiment {description}\tSeed {cfg.get('global', 'seed')}\tDevice {cfg.get('global', 'device')}"
     )

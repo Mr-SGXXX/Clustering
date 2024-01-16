@@ -17,6 +17,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# the sparse2coarse function refers to https://github.com/ryanchankh/cifar100coarse/blob/master/sparse2coarse.py
 import torch
 import torchvision.datasets as datasets
 import numpy as np
@@ -31,8 +33,12 @@ class CIFAR100(ClusteringDataset):
         super().__init__(cfg, needed_data_types)
         self.name = 'CIFAR100'
         data_dir = cfg.get("global", "dataset_dir")
+        super_class_flag = cfg.get("CIFAR100", "super_class")
         train_dataset = datasets.CIFAR100(data_dir, train=True, download=True)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True)
+        if super_class_flag:
+            train_dataset.targets = sparse2coarse(train_dataset.targets)
+            test_dataset.targets = sparse2coarse(test_dataset.targets)
         self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         self.data = self.data.transpose((0, 3, 1, 2))
         if 'img' in needed_data_types:
@@ -63,3 +69,23 @@ class CIFAR100(ClusteringDataset):
         return torch.from_numpy(np.array(self.data[index])), \
             torch.from_numpy(np.array(self.label[index])), \
             torch.from_numpy(np.array(index))
+    
+
+def sparse2coarse(targets):
+    """Convert Pytorch CIFAR100 sparse targets to coarse targets.
+
+    Usage:
+        trainset = torchvision.datasets.CIFAR100(path)
+        trainset.targets = sparse2coarse(trainset.targets)
+    """
+    coarse_labels = np.array([ 4,  1, 14,  8,  0,  6,  7,  7, 18,  3,  
+                               3, 14,  9, 18,  7, 11,  3,  9,  7, 11,
+                               6, 11,  5, 10,  7,  6, 13, 15,  3, 15,  
+                               0, 11,  1, 10, 12, 14, 16,  9, 11,  5, 
+                               5, 19,  8,  8, 15, 13, 14, 17, 18, 10, 
+                               16, 4, 17,  4,  2,  0, 17,  4, 18, 17, 
+                               10, 3,  2, 12, 12, 16, 12,  1,  9, 19,  
+                               2, 10,  0,  1, 16, 12,  9, 13, 15, 13, 
+                              16, 19,  2,  4,  6, 19,  5,  5,  8, 19, 
+                              18,  1,  2, 15,  6,  0, 17,  8, 14, 13])
+    return coarse_labels[targets]

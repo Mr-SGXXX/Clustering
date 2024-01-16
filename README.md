@@ -69,6 +69,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [x] [EDESC (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.pdf) | [Reference Code](https://github.com/JinyuCai95/EDESC-pytorch) | [My Implementation](./methods/deep/EDESC.py)
 
 *In the code provided by the authors, they gave a pretrained weight for Reuters10K, with it, we can gain a nice result sometimes not lower than the article for Reuters10K dataset, but pretraining from start following the code setting in the article instead of using the pretrain weight, the score is hardly as good as what it should be, but similar to this repositary. Besides, the result is not stable.*
+
 - [ ] [VaDeSC (ICLR 2022)](https://openreview.net/pdf?id=RQ428ZptQfU) | [Reference Code](https://github.com/i6092467/vadesc) 
 - [ ] [C3-GAN (ICLR 2022)](https://openreview.net/pdf?id=XWODe7ZLn8f) | [Reference Code](https://github.com/naver-ai/c3-gan) 
 - [ ] [HC-MGAN (AAAI 2022)](https://arxiv.org/pdf/2112.14772.pdf) | [Reference Code](https://github.com/dmdmello/HC-MGAN) 
@@ -88,17 +89,22 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [IIC (ICCV 2019)](http://openaccess.thecvf.com/content_ICCV_2019/papers/Ji_Invariant_Information_Clustering_for_Unsupervised_Image_Classification_and_Segmentation_ICCV_2019_paper.pdf) | [Reference Code](https://github.com/xu-ji/IIC) 
 - [ ] [DEC-DA (ACML 2018)](http://proceedings.mlr.press/v95/guo18b/guo18b.pdf) | [Reference Code](https://github.com/XifengGuo/DEC-DA) 
 - [x] [DeepCluster (ECCV 2018)](https://arxiv.org/abs/1807.05520) | [Reference Code](https://github.com/facebookresearch/deepcluster) | [My Implementation](./methods/deep/DeepCluster.py)
+
+*This method is designed for clustering on large dataset like ImageNet, and don't work well for the small datasets. In the official implementation, the author gave the detailed scripts about their experiments in the article, which contains using conv features of different level to do LogisticRegression for clustering and using these features for object detection. This repository doesn't offer these parts, and it only gives the clustering result by doing classical clustering on the fc features, which is also called the last epoch cluster assignments.*
+
 - [ ] [SpectralNet (ICLR 2018)](https://openreview.net/pdf?id=HJ_aoCyRZ) | [Reference Code](https://github.com/shaham-lab/SpectralNet) 
 - [ ] [DSC-Nets (NIPS 2017)](http://papers.neurips.cc/paper/6608-deep-subspace-clustering-networks.pdf) | [Reference Code](https://github.com/panji1990/Deep-subspace-clustering-networks)
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Reference Code](https://arxiv.org/pdf/1704.06327.pdf) 
 - [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Reference Code](https://github.com/XifengGuo/IDEC) | [My Implementation](./methods/deep/IDEC.py)
   
 *In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process. Because the IDEC use the same pretrain process as the DEC, in order to save time, the IDEC will directly use the DEC pretrain weight*
+
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Reference Code](https://github.com/slim1017/VaDE) 
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Reference Code](https://github.com/boyangumn/DCN-New) 
 - [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Reference Code](https://github.com/piiswrong/dec/tree/master) | [My Implementaion](./methods/deep/DEC.py)
 
 *In this method, the pretrain process is the most important part, whether the features are learned well by pretraining is directly correspond to whether the result is good. With a reproduced greedy layer-wise pretraining referred to the DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
+
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Reference Code](https://github.com/jwyang/JULE.torch)
 
 

@@ -17,6 +17,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# This method reproduction refers to the following repository:
+# https://github.com/Yunfan-Li/Contrastive-Clustering/tree/main
 from logging import Logger
 import torch
 import torch.nn as nn
@@ -29,18 +32,30 @@ import os
 from datasetLoader import ClusteringDataset
 from utils import config
 from .base import DeepMethod
+from .backbone.CC_resnet import get_resnet, Network
+from .loss.CC_loss import InstanceLoss, ClusterLoss
+from .utils.CC_utils import Transforms
 
 
 class CC(DeepMethod):
-    def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
+    def __init__(self, dataset: ClusteringDataset, description: str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
-        pass
+        self.batch_size = self.cfg.get("CC", "batch_size")
+        self.image_size = self.cfg.get("CC", "image_size")
+        self.epochs = self.cfg.get("CC", "epochs")
+        self.learn_rate = self.cfg.get("CC", "learn_rate")
+        self.weight_decay = self.cfg.get("CC", "learn_rate")
+        self.instance_temperature = self.cfg.get("CC", "instance_temperature")
+        self.cluster_temperature = self.cfg.get("CC", "cluster_temperature")
+        resnet = get_resnet(self.cfg.get("CC", "resnet"))
+        self.model = Network(resnet, self.cfg.get("CC", "feature_dim"), self.n_clusters).to(self.device)
 
     def forward(self, x):
         pass
 
     def pretrain(self):
-        pass
+        self.dataset.pretrain()
+        return None
 
     def train_model(self):
-        pass
+        self.dataset.clustering()

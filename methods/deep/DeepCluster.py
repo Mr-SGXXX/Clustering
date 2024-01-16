@@ -79,7 +79,7 @@ class DeepCluster(DeepMethod):
         # the deepcluster is trained directly on the images with kmeans result as label, and doesn't need the pretrain step.
         # the author gives how to donwload the pretrained model
         if self.resume is not None and self.resume == "download":
-            weight_path = os.path.join(self.cfg.get('global', 'weight_dir'), 'deepcluster_models')
+            weight_path = os.path.join(self.cfg.get('global', 'weight_dir'), 'deepcluster')
             if not os.path.exists(weight_path):
                 self.logger.info("Pretrained model not found, downloading DeepCluster pretrained model...")
                 os.system(f"bash ./scripts/download_DeepCluster_model.sh {weight_path}")
@@ -213,7 +213,7 @@ class DeepCluster(DeepMethod):
                     'arch': self.backbone,
                     'state_dict': self.model.state_dict(),
                     'optimizer' : optimizer.state_dict()},
-                os.path.join(weight_dir, f'checkpoint_{self.description}.pth.tar'))
+                os.path.join(weight_dir, f'checkpoint_{self.backbone}_{self.description}.pth.tar'))
         clustering_loss = self.clustering.cluster(features.cpu().detach().numpy(), self.logger)
         y_pred = arrange_clustering(self.clustering.images_lists)
         return y_pred, features

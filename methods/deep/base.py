@@ -49,7 +49,7 @@ class DeepMethod(nn.Module):
 
         If you don't use it, you can just leave it aside.
         """
-        raise NotImplementedError
+        return x
 
 
     def pretrain(self):
