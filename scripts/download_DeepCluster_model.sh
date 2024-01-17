@@ -5,7 +5,7 @@
 #
 #!/bin/bash
 
-MODELROOT="./weight/deepcluster_models"
+MODELROOT="./weight/deepcluster"
 
 if [ $# -eq 1 ]; then
     MODELROOT=$1

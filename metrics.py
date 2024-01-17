@@ -37,6 +37,7 @@ class Metrics:
     Methods:
         update_loss: Update loss.
         update: Update metrics.
+        record_feature: Record the features of specific epoch, the features will be used for generating the tsne&umap of the corresponding epoch.
         max: Get the max value of each metric.
         min: Get the min value of each metric.
         avg: Get the average value of each metric.
@@ -51,8 +52,16 @@ class Metrics:
         self.SC = AverageMeter("SC")
         self.PretrainLoss = {}
         self.Loss = {}
+        self.epoch_feature_dict = {}
         self.pretrain_time_cost = 0
         self.clustering_time_cost = 0
+
+    def record_feature(self, epoch: int, feature: torch.Tensor, y_pred: np.ndarray=None):
+        """
+        Record the features of specific epoch, the features will be used for generating the tsne&umap of the corresponding epoch.
+        """
+        self.epoch_feature_dict[epoch] = [
+            feature.cpu().detach().numpy(), y_pred]
 
     def update_pretrain_loss(self, **kwargs):
         """
@@ -80,12 +89,13 @@ class Metrics:
             self.Loss[key].update(kwargs[key])
         self.clustering_time_cost += time() - start_time
 
-    def update(self, y_pred, features=None, y_true=None):
+    def update(self, y_pred: np.ndarray, features: torch.Tensor = None, y_true: np.ndarray = None):
         """
         In each clustering epoch, update every metric in the metrics, which will be used for generating metrics figures.
         """
         start_time = time()
-        assert features is None or type(features) is np.ndarray or type(features) is torch.Tensor
+        assert features is None or type(
+            features) is np.ndarray or type(features) is torch.Tensor
         if features is not None:
             # when the size of dataset is too big, calculate the sc costs too much time.
             sc = clusters_scores(y_pred, features)
@@ -93,7 +103,8 @@ class Metrics:
         else:
             sc = None
         if y_true is not None:
-            assert type(y_true) is np.ndarray, "y_true should be of type np.ndarray or None"
+            assert type(
+                y_true) is np.ndarray, "y_true should be of type np.ndarray or None"
             acc, nmi, ari, homo, comp = evaluate(y_pred, y_true)
             self.ACC.update(acc)
             self.NMI.update(nmi)
@@ -115,12 +126,11 @@ class Metrics:
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
 
     def __str__(self):
-        return  "Clustering Scores:\n" + \
-                f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
-                f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \
-                f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" + \
-                f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
-        
+        return "Clustering Scores:\n" + \
+            f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
+            f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \
+            f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" + \
+            f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
 
 
 class AverageMeter:

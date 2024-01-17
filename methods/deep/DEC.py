@@ -32,6 +32,7 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset
+from metrics import normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from .base import DeepMethod
@@ -89,7 +90,12 @@ class DEC(DeepMethod):
             pretrain_path = ""
         if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
             self.logger.info(f"Pretrained weight found, Loading pretrained model in {pretrain_path}...")
-            self.ae.load_state_dict(torch.load(pretrain_path))
+            if os.path.splitext(pretrain_path)[1] == ".pth":
+                self.ae.load_state_dict(torch.load(pretrain_path))
+            elif os.path.splitext(pretrain_path)[1] == ".h5":
+                self.ae.load_keras_weight(pretrain_path)
+            else:
+                raise NotImplementedError(f"Pretrained weight format {os.path.splitext(pretrain_path)[1]} not supported!")
         else:
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
             if not os.path.exists(pretrain_path):
@@ -200,11 +206,15 @@ class DEC(DeepMethod):
                 total_loss /= len(train_loader)
                 self.metrics.update_loss(total_loss=total_loss)
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last):.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last):.4f}")
+                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
+                if delta_label < self.tol:
+                    es_count += 1
+                else:
+                    es_count = 0
+                if es_count >= 3:
                     self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                     break
-                else:
-                    es_count += 1
                 epoch_loader.set_postfix({
                     "ACC": acc,
                     "NMI": nmi,

@@ -20,6 +20,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import numpy as np
+import h5py
 
 from .layers import build_MLP_net
 
@@ -61,6 +63,34 @@ class DEC_AE(nn.Module):
         self.dropout.p = 0.0
         for param in self.parameters():
             param.requires_grad = True
+
+    def load_keras_weight(self, weight_path):
+        weight = {}
+        bias = {}
+        with h5py.File(weight_path, 'r') as f:
+            for layer in f.keys():
+                if layer != "input":
+                    weight[layer] = np.array(f[f"{layer}/{layer}/kernel:0"])
+                    bias[layer] = np.array(f[f"{layer}/{layer}/bias:0"])
+        device = self.autoencoders[0].encoder.weight.device
+        self.autoencoders[0].encoder.weight.data = torch.from_numpy(weight['encoder_1'].T).float().to(device)
+        self.autoencoders[0].encoder.bias.data = torch.from_numpy(bias['encoder_1']).float().to(device)
+        self.autoencoders[0].decoder.weight.data = torch.from_numpy(weight['output'].T).float().to(device)
+        self.autoencoders[0].decoder.bias.data = torch.from_numpy(bias['output']).float().to(device)
+        self.autoencoders[1].encoder.weight.data = torch.from_numpy(weight['encoder_2'].T).float().to(device)
+        self.autoencoders[1].encoder.bias.data = torch.from_numpy(bias['encoder_2']).float().to(device)
+        self.autoencoders[1].decoder.weight.data = torch.from_numpy(weight['decoder_1'].T).float().to(device)
+        self.autoencoders[1].decoder.bias.data = torch.from_numpy(bias['decoder_1']).float().to(device)
+        self.autoencoders[2].encoder.weight.data = torch.from_numpy(weight['encoder_3'].T).float().to(device)
+        self.autoencoders[2].encoder.bias.data = torch.from_numpy(bias['encoder_3']).float().to(device)
+        self.autoencoders[2].decoder.weight.data = torch.from_numpy(weight['decoder_2'].T).float().to(device)
+        self.autoencoders[2].decoder.bias.data = torch.from_numpy(bias['decoder_2']).float().to(device)
+        self.autoencoders[3].encoder.weight.data = torch.from_numpy(weight['hidden'].T).float().to(device)
+        self.autoencoders[3].encoder.bias.data = torch.from_numpy(bias['hidden']).float().to(device)
+        self.autoencoders[3].decoder.weight.data = torch.from_numpy(weight['decoder_3'].T).float().to(device)
+        self.autoencoders[3].decoder.bias.data = torch.from_numpy(bias['decoder_3']).float().to(device)
+
+        
 
             
 class AutoEncoder(nn.Module):

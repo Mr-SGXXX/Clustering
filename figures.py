@@ -26,6 +26,8 @@ import seaborn as sns
 import numpy as np
 import typing
 import os
+import imageio
+from logging import Logger
 
 from metrics import Metrics
 from utils import config
@@ -34,7 +36,7 @@ from utils import config
 def draw_charts(rst_metrics: typing.Union[Metrics, None],
                 pretrain_features: typing.Union[torch.Tensor, np.ndarray, None],
                 features: typing.Union[torch.Tensor, np.ndarray, None],
-                pred_labels: np.ndarray, true_labels: typing.Union[np.ndarray, None], description: str, cfg: config):
+                pred_labels: np.ndarray, true_labels: typing.Union[np.ndarray, None], description: str, logger: Logger, cfg: config):
     """
     Generate figures for clustering results
 
@@ -77,6 +79,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
             for loss_name in rst_metrics.Loss:
                 loss_names.append(loss_name)
                 losses_list.append(rst_metrics.Loss[loss_name].val_list)
+            logger.info("Generate Clustering Loss Chart")
             gen_loss_chart(losses_list, loss_names,
                            clustering_loss_figure_path)
             figure_paths.append(clustering_loss_figure_path)
@@ -87,6 +90,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                 loss_names.append(loss_name)
                 losses_list.append(
                     rst_metrics.PretrainLoss[loss_name].val_list)
+            logger.info("Generate Pretrain Loss Chart")
             gen_pretrain_loss_chart(
                 losses_list, loss_names, pretrain_loss_figure_path)
             figure_paths.append(pretrain_loss_figure_path)
@@ -97,13 +101,19 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                 'ARI': rst_metrics.ARI.val_list,
                 'SC': rst_metrics.SC.val_list,
             }
+            logger.info("Generate Clustering Score Chart")
             gen_clustering_chart_metrics_score(
                 rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
             figure_paths.append(clustering_score_figure_path)
+        if len(rst_metrics.epoch_feature_dict) > 0:
+            logger.info("Generate Clustering Process Visualization")
+            figure_paths += draw_epoch_tsne_umap(
+                rst_metrics, dataset, method, figure_dir, true_labels)
 
     if features is not None:
         if type(features) == torch.Tensor:
             features = features.cpu().detach().numpy()
+        logger.info("Generate Clustering Result Visualization")
         gen_tsne(features, true_labels, pred_labels,
                  clustering_tsne_figure_path)
         gen_umap(features, true_labels, pred_labels,
@@ -114,6 +124,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
     if pretrain_features is not None:
         if type(pretrain_features) == torch.Tensor:
             pretrain_features = pretrain_features.cpu().detach().numpy()
+        logger.info("Generate Pretrain Result Visualization")
         gen_tsne(pretrain_features, true_labels,
                  None, pretrain_tsne_figure_path)
         gen_umap(pretrain_features, true_labels,
@@ -124,7 +135,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
     return figure_paths
 
 
-def gen_tsne(features: np.ndarray, true_labels, pred_labels, path, classIdx2label: callable = None):
+def gen_tsne(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndarray, path: str, classIdx2label: callable = None):
     # Generate t-SNE visualization of features
     tsne = TSNE(n_components=2, random_state=2023)
     X_tsne = tsne.fit_transform(features)
@@ -162,7 +173,7 @@ def gen_tsne(features: np.ndarray, true_labels, pred_labels, path, classIdx2labe
     plt.savefig(path)
 
 
-def gen_umap(features: np.ndarray, true_labels, pred_labels, path, classIdx2label: callable = None):
+def gen_umap(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndarray, path: str, classIdx2label: callable = None):
     # Generate UMAP visualization of features
     umap = UMAP(n_components=2, random_state=2023)
     X_umap = umap.fit_transform(features)
@@ -196,6 +207,32 @@ def gen_umap(features: np.ndarray, true_labels, pred_labels, path, classIdx2labe
         plt.title('Predicted Label UMAP')
         plt.legend(loc='best')
     plt.savefig(path)
+
+
+def draw_epoch_tsne_umap(metrics: Metrics, dataset: str, method: str, dir_name: str, y_true: np.ndarray = None):
+    tsne_list = []
+    umap_list = []
+    for epoch, (features, y_pred) in metrics.epoch_feature_dict.items():
+        tsne_figure_path = os.path.join(
+            dir_name, f"{method}_{dataset}_epoch{epoch}_tsne.png")
+        umap_figure_path = os.path.join(
+            dir_name, f"{method}_{dataset}_epoch{epoch}_umap.png")
+        gen_tsne(features, y_true, y_pred, tsne_figure_path)
+        gen_umap(features, y_true, y_pred, umap_figure_path)
+        tsne_list.append(tsne_figure_path)
+        umap_list.append(umap_figure_path)
+    tsne_gif_path = os.path.join(dir_name, f"{method}_{dataset}_tsne.gif")
+    umap_gif_path = os.path.join(dir_name, f"{method}_{dataset}_umap.gif")
+    if len(tsne_list) != 0:
+        imageio.mimsave(tsne_gif_path, [imageio.imread(path)
+                                        for path in tsne_list], fps=1)
+    if len(umap_list) != 0:
+        imageio.mimsave(umap_gif_path, [imageio.imread(path)
+                                        for path in umap_list], fps=1)
+    path_list = tsne_list + umap_list
+    path_list.append(tsne_gif_path)
+    path_list.append(umap_gif_path)
+    return path_list
 
 
 def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
@@ -249,18 +286,28 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     lines = [loss_line]  # Storing the line objects for the legend
 
     # Plotting for ax2
-    if len(score_dict['ACC']) != 0:
-        acc_line, = ax2.plot(
-            epochs, score_dict['ACC'], color='red', linewidth=1, label='ACC')
-        nmi_line, = ax2.plot(
-            epochs, score_dict['NMI'], color='orange', linewidth=1, label='NMI')
-        ari_line, = ax2.plot(
-            epochs, score_dict['ARI'], color='green', linewidth=1, label='ARI')
-        lines += [acc_line, nmi_line, ari_line]
-    if len(score_dict['SC']) != 0:
-        sc_line, = ax2.plot(
-            epochs, score_dict['SC'], color='brown', linewidth=1, label='SC')
-        lines += [sc_line]
+    color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown'}
+    for metric, values in score_dict.items():
+        if len(values) != 0:
+            metric_line, = ax2.plot(
+                epochs, values, color=color[metric], linewidth=1, label=metric)
+            lines.append(metric_line)
+
+            # Find and annotate the maximum point for the metric
+            max_value = max(values)
+            max_epoch = epochs[values.index(max_value)]
+            ax2.plot(max_epoch, max_value, marker='*',
+                     color='black', markersize=4)
+            ax2.text(max_epoch, max_value + 0.005, f'{max_value:.2f}',
+                     fontsize=8, ha='center')
+
+            last_value = values[-1]
+            last_epoch = epochs[-1]
+            ax2.plot(last_epoch, last_value, marker='o',
+                     color='blue', markersize=4)
+            if last_epoch != max_epoch:
+                ax2.text(last_epoch, last_value + 0.005, f'{last_value:.2f}',
+                         fontsize=8, ha='center')
 
     ax2.set_ylabel("Evaluation Metric", color='black', fontsize=12)
 

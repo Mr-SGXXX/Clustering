@@ -31,7 +31,7 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset, reassign_dataset
-from metrics import normalized_mutual_info_score as nmi
+from metrics import normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from .backbone.DeepCluster_AlexNet import alexnet
@@ -202,7 +202,7 @@ class DeepCluster(DeepMethod):
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
 
-                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last)}\n')
+                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last)}\n')
                 self.logger.info(f"Clustering Loss: {clustering_loss}\tConvNet Loss: {total_loss / len(train_dataloader):.4f}")
 
                 # save running checkpoint

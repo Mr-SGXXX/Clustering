@@ -30,7 +30,7 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset
-from metrics import Metrics
+from metrics import Metrics, normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from .base import DeepMethod
@@ -92,8 +92,14 @@ class IDEC(DeepMethod):
             pretrain_path = ""
         if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
             self.logger.info(f"Pretrained weight found, Loading pretrained model in {pretrain_path}...")
-            self.ae.load_state_dict(torch.load(pretrain_path))
+            if os.path.splitext(pretrain_path)[1] == ".pth":
+                self.ae.load_state_dict(torch.load(pretrain_path))
+            elif os.path.splitext(pretrain_path)[1] == ".h5":
+                self.ae.load_keras_weight(pretrain_path)
+            else:
+                raise NotImplementedError(f"Pretrained weight format {os.path.splitext(pretrain_path)[1]} not supported!")
         else:
+            train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
@@ -101,7 +107,6 @@ class IDEC(DeepMethod):
                 self.logger.info("Not using pretrained weight, Pretraining...")
             if self.cfg.get("IDEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
-                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
                 with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                     for i in level_loader:
                         optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -145,6 +150,7 @@ class IDEC(DeepMethod):
                             self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
             else:
                 # Pretrain in a quick way (not layer-wise)
+                self.ae.defreeze()
                 optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
                 with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
                     for it in epoch_loader:
@@ -192,13 +198,13 @@ class IDEC(DeepMethod):
                     if iter_time % self.update_interval == 0:
                         z, q_full = self.encode_dataset()
                         p = target_distribution(q_full)  
-                    iter_time += 1
+                    iter_time += 2
                     data = data.to(self.device)
                     x_bar, q, _ = self(data)
                     rec_loss = nn.MSELoss()(x_bar, data)
                     kl_loss = nn.KLDivLoss(reduction='batchmean')(q.log(), p[idx])
                     loss = rec_loss + self.gamma * kl_loss 
-                    # loss = rec_loss * self.gamma * kl_loss 
+                    # loss = rec_loss * self.gamma + kl_loss 
                     # loss = kl_loss 
                     optimizer.zero_grad()
                     loss.backward()
@@ -219,13 +225,14 @@ class IDEC(DeepMethod):
                             np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {nmi(y_pred, y_pred_last)}")
-                if delta_label < self.tol and es_count > 5:
-                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
-                    stop_train_flag = True
-                    break
-                else:
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last)}")
+                if delta_label < self.tol:
                     es_count += 1
+                else:
+                    es_count = 0
+                if es_count >= 3:
+                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
+                    break
                 epoch_loader.set_postfix({
                     "ACC": acc,
                     "NMI": nmi,

@@ -17,19 +17,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from utils import email_reminder, get_logger, make_dir, get_args
+from figures import draw_charts
+from metrics import evaluate
+from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
+from datasetLoader import DATASETS
+from methods import *
+import traceback
+import os
 import time
 import warnings
 import pandas as pd
 warnings.filterwarnings("ignore")
-import os
-import traceback
-
-from methods import *
-from datasetLoader import DATASETS
-from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
-from metrics import evaluate
-from figures import draw_charts
-from utils import email_reminder, get_logger, make_dir, get_args
 
 
 def main():
@@ -41,11 +40,11 @@ def main():
         cfg.get("global", "description")
         if cfg.get("global", "description") is not None
         else (cfg.get("global", "method_name") + "_" +
-        cfg.get("global", "dataset"))
+              cfg.get("global", "dataset"))
     ) + f"_{int(start_time)}"
     print(f"Experiment: {description} is running...")
     logger, log_path = get_logger(
-        cfg.get("global", "log_dir"), description, std_out=cfg.get("global", "log_std_out"))
+        cfg.get("global", "log_dir"), description, std_out=cfg.get("global", "log_std_output"))
     logger.info(
         f"Experiment {description}\tSeed {cfg.get('global', 'seed')}\tDevice {cfg.get('global', 'device')}"
     )
@@ -96,7 +95,8 @@ def main():
             pred_labels, features = method.train_model()
             metrics = method.metrics
         else:
-            raise NotImplementedError(f"Method Type {method_flag} Is Not Implemented!")
+            raise NotImplementedError(
+                f"Method Type {method_flag} Is Not Implemented!")
 
         train_end_time = time.time()
 
@@ -106,16 +106,19 @@ def main():
             logger.info(str(metrics))
             pretrain_start_time += metrics.pretrain_time_cost
             train_end_time -= metrics.clustering_time_cost
-            logger.info(f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")        
+            logger.info(
+                f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")
         else:
             logger.info(
                 f"Clustering Over!\n" +
-                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}" 
+                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}"
             )
-        logger.info(f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
-        
+        logger.info(
+            f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
+
         if cfg.get("global", "save_clustering_result") == True:
-            rst_path = os.path.join(cfg.get("global", "result_dir"), f'{description}.csv')
+            rst_path = os.path.join(
+                cfg.get("global", "result_dir"), f'{description}.csv')
             df = pd.DataFrame(pred_labels, columns=['Cluster'])
             df.to_csv(rst_path, index=True)
         try:
@@ -126,9 +129,11 @@ def main():
                 pred_labels=pred_labels,
                 true_labels=dataset.label,
                 description=description,
+                logger=logger,
                 cfg=cfg
             )
-            logger.info(f"Figures Successfully Generated, saved in {figure_paths}!")
+            logger.info(
+                f"Figures Successfully Generated, saved in {figure_paths}!")
         except Exception as e:
             figure_paths = {}
             error_info = traceback.format_exc()
@@ -151,7 +156,8 @@ def main():
     except Exception as e:
         # raise e
         error_info = traceback.format_exc()
-        logger.info(f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
+        logger.info(
+            f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
         reminder.send_message(
             f"Experiment {description} failed.\n" +
             f"Method: {cfg.get('global', 'method_name')}\n" +

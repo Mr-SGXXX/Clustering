@@ -1,8 +1,8 @@
 __pycache__
 log
-figures
-result
-weight
+figures/*
+result/*
+weight/*
 data/*
 
 cfg/email.cfg
@@ -11,3 +11,8 @@ cfg/email.cfg
 !data/Reuters10K
 !data/ImageNet-10
 !data/ImageNet-Dogs
+
+!weight/EDESC_reuters.pkl
+!weight/DEC_mnist_ae_weights.h5
+!weight/DEC_usps_ae_weights.h5
+!weight/DEC_reutersidf10k_ae_weights.h5

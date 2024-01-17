@@ -34,10 +34,22 @@ if [ $# -eq 2 ]; then
     figures_dir=$2
 fi
 
-for file in "$log_dir"/*.log; do
-    filename=$(basename "$file" | sed 's/\.[^.]*$//')
+find "$log_dir" -type f -name "*.log" | while read -r log_file; do
+    sub_path=${log_file#"$log_dir"}
+    filename=$(basename "$log_file" | sed 's/\.[^.]*$//')
+    figure_path="$figures_dir$sub_path"
 
-    if [ ! -d "$figures_dir/$filename" ]; then
-        rm "$file"
+    if [ ! -d "$figure_path/$filename" ]; then
+        rm "$log_file"
+        dir_path=$(dirname "$log_file")
+        while [ -z "$(ls -A "$dir_path")" ]; do
+            rmdir "$dir_path"
+            if [ "$dir_path" == "$log_dir" ]; then
+                break
+            fi
+            dir_path=$(dirname "$dir_path")
+        done
     fi
 done
+
+find "$figures_dir" -type d -empty -delete
