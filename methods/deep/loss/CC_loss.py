@@ -37,7 +37,7 @@ class InstanceLoss(nn.Module):
 
     def mask_correlated_samples(self, batch_size):
         N = 2 * batch_size
-        mask = torch.ones((N, N))
+        mask = torch.ones((N, N)).to(self.device)
         mask = mask.fill_diagonal_(0)
         for i in range(batch_size):
             mask[i, batch_size + i] = 0

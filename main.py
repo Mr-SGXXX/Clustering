@@ -17,17 +17,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from utils import email_reminder, get_logger, make_dir, get_args
-from figures import draw_charts
-from metrics import evaluate
-from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
-from datasetLoader import DATASETS
-from methods import *
 import traceback
 import os
 import time
 import warnings
 import pandas as pd
+
+
+from utils import email_reminder, get_logger, make_dir, get_args, save_rst
+from figures import draw_charts
+from metrics import evaluate
+from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
+from datasetLoader import DATASETS
+from methods import *
+
 warnings.filterwarnings("ignore")
 
 
@@ -116,11 +119,10 @@ def main():
         logger.info(
             f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
 
-        if cfg.get("global", "save_clustering_result") == True:
-            rst_path = os.path.join(
-                cfg.get("global", "result_dir"), f'{description}.csv')
-            df = pd.DataFrame(pred_labels, columns=['Cluster'])
-            df.to_csv(rst_path, index=True)
+        if cfg.get("global", "save_expeiment_result") == True:
+            save_rst(features, metrics, pred_labels, dataset.label, 
+                     train_start_time - pretrain_start_time, 
+                     train_end_time - train_start_time, description, logger, cfg)
         try:
             figure_paths = draw_charts(
                 rst_metrics=metrics,

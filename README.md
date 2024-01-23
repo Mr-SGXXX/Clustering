@@ -84,7 +84,7 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [MiCE (ICLR 2021)](https://openreview.net/pdf?id=gV3wdEOGy_V) | [Reference Code](https://github.com/TsungWeiTsai/MiCE) 
 - [ ] [ACe/Dec (IJCAI 2021)](https://www.ijcai.org/proceedings/2021/0389.pdf) | [Reference Code](https://gitlab.cs.univie.ac.at/lukas/acedec_public)
 - [ ] [DipDECK (KDD 2021)](https://github.com/collinleiber/ClustPy) | [Reference Code](https://github.com/collinleiber/ClustPy)
-- [ ] [CC (AAAI 2021)](https://arxiv.org/pdf/2009.09687.pdf) | [Reference Code](https://github.com/Yunfan-Li/Contrastive-Clustering) 
+- [x] [CC (AAAI 2021)](https://arxiv.org/pdf/2009.09687.pdf) | [Reference Code](https://github.com/Yunfan-Li/Contrastive-Clustering) 
 - [ ] [DFCN (AAAI 2021)](https://arxiv.org/pdf/2012.09600.pdf) | [Reference Code](https://github.com/WxTu/DFCN)
 - [ ] [SCCL (NAACL 2021)](https://arxiv.org/pdf/2103.12953.pdf) | [Reference Code](https://github.com/amazon-science/sccl) 
 - [ ] [PSSC (TIP 2021)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9440402) | [Reference Code](https://github.com/sckangz/SelfsupervisedSC) 

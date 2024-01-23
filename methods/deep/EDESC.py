@@ -187,6 +187,7 @@ class EDESC(DeepMethod):
                 y_pred = tmp_s.cpu().detach().numpy().argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
+                delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if self.cfg.get("global", "record_sc"):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
@@ -194,7 +195,7 @@ class EDESC(DeepMethod):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 if epoch % 10 == 0:
                     self.logger.info(
-                        f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last)}')
+                        f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}')
                 total_reconstr_loss = 0
                 total_kl_loss = 0
                 total_loss_d1 = 0
@@ -247,10 +248,11 @@ class EDESC(DeepMethod):
                                     total_loss_d2=total_loss_d2,
                                     total_loss=total_loss)
                 epoch_loader.set_postfix({
-                    "Acc": acc,
+                    "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
-                    "Delta_label": delta_label
+                    "Delta_label": delta_label,
+                    "Delta_NMI": delta_nmi,
                 })
         return y_pred, self.encode_dataset()[0]
 

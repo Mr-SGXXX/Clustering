@@ -223,9 +223,10 @@ class IDEC(DeepMethod):
                 y_pred = q_full.cpu().detach().numpy().argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                             np.float32) / y_pred.shape[0]
+                delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last)}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
                 else:
@@ -237,7 +238,8 @@ class IDEC(DeepMethod):
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
-                    "Delta_label": delta_label
+                    "Delta_label": delta_label,
+                    "Delta_NMI": delta_nmi,
                 })
         return y_pred, self.encode_dataset()[0]
 

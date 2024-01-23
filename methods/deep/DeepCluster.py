@@ -196,15 +196,26 @@ class DeepCluster(DeepMethod):
                         optimizer.step()
                         optimizer_tl.step()
                         
+                        batchloader.set_postfix({
+                            "Loss": loss.item()
+                        })
+
                         if i % 200 == 0:
                             self.logger.info(f"Epoch {epoch}, batch {i}, loss: {loss.item()}")
                 
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                delta_nmi = cal_nmi(y_pred, y_pred_last)
+                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}\n')
+                self.logger.info(f"Clustering Loss: {clustering_loss}\tConvNet Loss: {total_loss / len(train_dataloader):.4f}")
                 y_pred_last = y_pred
 
-                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last)}\n')
-                self.logger.info(f"Clustering Loss: {clustering_loss}\tConvNet Loss: {total_loss / len(train_dataloader):.4f}")
-
+                epochloader.set_postfix({
+                    "ACC": acc,
+                    "NMI": nmi,
+                    "ARI": ari,
+                    "Delta Label": delta_label,
+                    "Delta NMI": delta_nmi
+                })
                 # save running checkpoint
                 weight_dir = os.path.exists(os.path.join(self.cfg.get("global", "weight_dir"), "deepcluster_checkpoints"))
                 if not weight_dir:

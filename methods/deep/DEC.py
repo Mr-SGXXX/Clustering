@@ -190,6 +190,7 @@ class DEC(DeepMethod):
                 y_pred = q.cpu().detach().numpy().argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(
                     np.float32) / y_pred.shape[0]
+                delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if self.cfg.get("global", "record_sc"):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
@@ -206,7 +207,7 @@ class DEC(DeepMethod):
                 total_loss /= len(train_loader)
                 self.metrics.update_loss(total_loss=total_loss)
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {cal_nmi(y_pred, y_pred_last):.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                     self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
@@ -219,7 +220,8 @@ class DEC(DeepMethod):
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
-                    "Delta_label": delta_label
+                    "Delta_label": delta_label,
+                    "Delta_NMI": delta_nmi,
                 })
         return y_pred, self.encode_dataset()[0]
 
