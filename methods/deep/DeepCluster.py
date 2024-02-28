@@ -80,13 +80,13 @@ class DeepCluster(DeepMethod):
         # the author gives how to donwload the pretrained model
         if self.resume is not None and self.resume == "download":
             weight_path = os.path.join(self.cfg.get('global', 'weight_dir'), 'deepcluster')
-            if not os.path.exists(weight_path):
+            self.resume = os.path.join(weight_path, self.backbone)
+            self.resume = os.path.join(weight_path, 'checkpoint.pth.tar')
+            if not os.path.exists(self.resume):
                 self.logger.info("Pretrained model not found, downloading DeepCluster pretrained model...")
                 os.system(f"bash ./scripts/download_DeepCluster_model.sh {weight_path}")
             else:
                 self.logger.info("Pretrained model found, skipping downloading...")
-            weight_path = os.path.join(weight_path, self.backbone)
-            self.resume = os.path.join(weight_path, 'checkpoint.pth.tar')
         return None
             
 

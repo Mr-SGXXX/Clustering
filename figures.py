@@ -221,17 +221,16 @@ def draw_epoch_tsne_umap(metrics: Metrics, dataset: str, method: str, dir_name: 
         gen_umap(features, y_true, y_pred, umap_figure_path)
         tsne_list.append(tsne_figure_path)
         umap_list.append(umap_figure_path)
+    path_list = tsne_list + umap_list
     tsne_gif_path = os.path.join(dir_name, f"{method}_{dataset}_tsne.gif")
     umap_gif_path = os.path.join(dir_name, f"{method}_{dataset}_umap.gif")
-    if len(tsne_list) != 0:
+    if len(tsne_list) > 1:
         imageio.mimsave(tsne_gif_path, [imageio.imread(path)
                                         for path in tsne_list], fps=1)
-    if len(umap_list) != 0:
         imageio.mimsave(umap_gif_path, [imageio.imread(path)
                                         for path in umap_list], fps=1)
-    path_list = tsne_list + umap_list
-    path_list.append(tsne_gif_path)
-    path_list.append(umap_gif_path)
+        path_list.append(tsne_gif_path)
+        path_list.append(umap_gif_path)
     return path_list
 
 

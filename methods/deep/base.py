@@ -35,6 +35,7 @@ class DeepMethod(nn.Module):
         self.device = cfg.get("global", "device")
         self.metrics = Metrics()
         self.workers = cfg.get("global", "workers")
+        self.weight_dir = cfg.get("global", "weight_dir")
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
             self.n_clusters = dataset.num_classes
         else:

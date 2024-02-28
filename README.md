@@ -1,4 +1,4 @@
-# Clustering Methods Collection & Reproduciton
+# Clustering Methods Collection & Reproduction
 
 __Notice: The repository is far from completed, all codes I provided are just for share and will often be changed. And I do not promise any performance and accurate reproduction.__
 

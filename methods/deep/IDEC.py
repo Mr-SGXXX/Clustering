@@ -56,7 +56,6 @@ class IDEC(DeepMethod):
         self.update_interval = cfg.get("IDEC", "update_interval")
         self.momentum = cfg.get("IDEC", "momentum")
         self.train_max_epoch = cfg.get("IDEC", "train_max_epoch")
-        self.weight_dir = cfg.get("global", "weight_dir")
         self.tol = cfg.get("IDEC", "tol")
 
         self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)

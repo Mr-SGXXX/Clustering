@@ -66,7 +66,7 @@ class CC(DeepMethod):
         with torch.no_grad():
             for data, _, _ in tqdm(train_loader, desc="Encoding dataset", dynamic_ncols=True, leave=False):
                 data = data.to(self.device)
-                z, q = self(data)
+                z, q = self.model(data)
                 latent_list.append(z)
                 assign_list.append(q)
         latent = torch.cat(latent_list, dim=0)
@@ -89,7 +89,7 @@ class CC(DeepMethod):
         else:
             self.start_epoch = 0
             self.logger.info(
-                f"Checkpoint not used or not founf, starting from scratch!")
+                f"Checkpoint not used or not found, starting from scratch!")
 
         self.model.train()
         cluster_data_loader = DataLoader(

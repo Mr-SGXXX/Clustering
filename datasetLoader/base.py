@@ -70,13 +70,13 @@ class ClusteringDataset(Dataset):
         else:
             return self.total_length - self.unlabel_length
         
-    def __getitem__(self, index) -> (torch.Tensor, typing.Union[torch.Tensor, None], torch.Tensor):
+    def __getitem__(self, index) -> typing.Tuple[torch.Tensor, typing.Union[torch.Tensor, None], torch.Tensor]:
         """
         return the data, label and index of the dataset, (torch.Tensor, torch.Tensor, torch.Tensor), 
         
         those unlabeled data should be the last to return
 
-        if the label is not available or those unlabeled data, return (torch.Tensor, None, torch.Tensor)
+        for those unlabeled data, return (torch.Tensor, None, torch.Tensor)
         """
         return super().__getitem__(index)
 
@@ -150,7 +150,7 @@ class ClusteringDataset(Dataset):
     @property
     def data(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
         """
-        the data of the dataset containing the labeled and unlabeled data, numpy.ndarray
+        all the data of the dataset containing the labeled and unlabeled data, numpy.ndarray
         
         if the dataset loads each data in the __getitem__ method, the `data_init` is suggested to be implemented
         """

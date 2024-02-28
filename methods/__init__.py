@@ -17,6 +17,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import os
+
 from .deep import *
 from .classical import *
 
@@ -24,3 +26,14 @@ METHODS_INPUT_TYPES = {
     **DEEP_METHODS_INPUT_TYPES,
     **CLASSICAL_METHODS_INPUT_TYPES
 }
+
+if os.path.exists("methods/my_test/__init__.py"):
+    from .mine import *
+    for method in MY_METHODS:
+        if MY_METHODS_TYPE_FLAG[method] == "deep":
+            DEEP_METHODS[method] = MY_METHODS[method]
+        elif MY_METHODS_TYPE_FLAG[method] == "classical":
+            CLASSICAL_METHODS[method] = MY_METHODS[method]
+        else:
+            raise ValueError("The method type should be either 'deep' or 'classical'")
+    METHODS_INPUT_TYPES = {**METHODS_INPUT_TYPES, **MY_METHODS_INPUT_TYPES}

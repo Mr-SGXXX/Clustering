@@ -4,6 +4,7 @@ figures/*
 result/*
 weight/*
 data/*
+methods/mine
 
 cfg/email.cfg
 .vscode/launch.json
@@ -16,3 +17,4 @@ cfg/email.cfg
 !weight/DEC_mnist_ae_weights.h5
 !weight/DEC_usps_ae_weights.h5
 !weight/DEC_reutersidf10k_ae_weights.h5
+

@@ -116,6 +116,12 @@ class config:
         str_data = self.cfg.get(session, option)
         return process(str_data)
     
+    def __getitem__(self, section_name)->dict:
+        return {option: self.get(section_name, option) for option in self.cfg.options(section_name)}
+
+    def __len__(self):
+        return len(self.cfg.sections())
+    
     def __str__(self) -> str:
         rst_str = "Config Setting:\n\n"
         for section in self.cfg.sections():

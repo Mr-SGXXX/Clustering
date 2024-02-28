@@ -54,7 +54,6 @@ class DEC(DeepMethod):
         self.lr = cfg.get("DEC", "learn_rate")
         self.momentum = cfg.get("DEC", "momentum")
         self.train_max_epoch = cfg.get("DEC", "train_max_epoch")
-        self.weight_dir = cfg.get("global", "weight_dir")
         self.tol = cfg.get("DEC", "tol")
 
         self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
@@ -101,7 +100,7 @@ class DEC(DeepMethod):
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
-                self.logger.info("Not using pretrained weight, Pretraining...")
+                self.logger.info("Not use pretrained weight, Pretraining...")
             
             if self.cfg.get("DEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
