@@ -283,6 +283,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     # Creating a twin axis for other metrics
     ax2 = ax1.twinx()
     lines = [loss_line]  # Storing the line objects for the legend
+    text_positions = []  # To keep track of text positions to avoid overlap
 
     # Plotting for ax2
     color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown'}
@@ -292,21 +293,26 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
                 epochs, values, color=color[metric], linewidth=1, label=metric)
             lines.append(metric_line)
 
-            # Find and annotate the maximum point for the metric
+            # Highlight and annotate the maximum and last values
             max_value = max(values)
             max_epoch = epochs[values.index(max_value)]
-            ax2.plot(max_epoch, max_value, marker='*',
-                     color='black', markersize=4)
-            ax2.text(max_epoch, max_value + 0.005, f'{max_value:.2f}',
-                     fontsize=8, ha='center')
-
             last_value = values[-1]
             last_epoch = epochs[-1]
-            ax2.plot(last_epoch, last_value, marker='o',
-                     color='blue', markersize=4)
+
+            # For max value: mark, annotate, and draw a vertical line
+            ax2.plot(max_epoch, max_value, 'o', color=color[metric], markersize=4)
+            max_x, max_adjusted_y = adjust_text_position(max_epoch, max_value, text_positions)
+            ax2.text(max_x, max_adjusted_y, f'{max_value:.2f}', fontsize=10, ha='center', va='bottom')
+            ax2.axvline(x=max_epoch, color=color[metric], linestyle='--', linewidth=0.5)
+            text_positions.append((max_x, max_adjusted_y))
+
+            # For the last value, if it's not the max: mark, annotate
             if last_epoch != max_epoch:
-                ax2.text(last_epoch, last_value + 0.005, f'{last_value:.2f}',
-                         fontsize=8, ha='center')
+                ax2.plot(last_epoch, last_value, 'o', color='blue', markersize=4)  # Use blue to distinguish
+                last_x, last_adjusted_y = adjust_text_position(last_epoch, last_value, text_positions)
+                ax2.text(last_x, last_adjusted_y, f'{last_value:.2f}', fontsize=10, ha='center', va='bottom')
+                text_positions.append((last_x, last_adjusted_y))
+
 
     ax2.set_ylabel("Evaluation Metric", color='black', fontsize=12)
 
@@ -317,3 +323,19 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     plt.title("Clustering Loss and Evaluation Metrics Chart", fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.savefig(path)
+
+
+
+def adjust_text_position(x, y, existing_positions, threshold=0.02):
+    """
+    Adjust the text position to avoid overlap.
+    `existing_positions` is a list of tuples containing the x and y positions of texts already plotted.
+    `threshold` is the minimum allowed distance to consider an overlap.
+    Returns a tuple of adjusted (x, y) position.
+    """
+    adjusted_y = y + 0.008  # Initial adjustment
+    for pos in existing_positions:
+        while abs(adjusted_y - pos[1]) < threshold:
+            # Adjust the position up or down based on comparison
+            adjusted_y += threshold if adjusted_y > pos[1] else -threshold
+    return x, adjusted_y

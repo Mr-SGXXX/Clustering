@@ -25,7 +25,7 @@ import os
 import logging
 
 from metrics import Metrics
-from config import config
+from .config import config
 
 
 def save_rst(final_feature: typing.Union[None, np.ndarray, torch.Tensor],
@@ -61,10 +61,8 @@ def save_rst(final_feature: typing.Union[None, np.ndarray, torch.Tensor],
             fp['sc'] = metrics.SC.val_list
             fp['comp'] = metrics.COMP.val_list
             fp['homo'] = metrics.HOMO.val_list
-            fp['pretrain_loss'] = {}
-            fp['loss'] = {}
             for key in metrics.PretrainLoss:
-                fp['pretrain_loss'][key] = metrics.PretrainLoss[key].val_list
+                fp[f"pretrain_loss_{key}"] = metrics.PretrainLoss[key].val_list
             for key in metrics.Loss:
-                fp['loss'][key] = metrics.Loss[key].val_list
+                fp[f"loss_{key}"] = metrics.Loss[key].val_list
     logger.info("Experiment result saved successfully!")

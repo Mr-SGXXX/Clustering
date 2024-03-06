@@ -63,3 +63,4 @@ umap==0.1.1
 umap-learn==0.5.5
 urllib3==2.1.0
 zipp==3.17.0
+pyerm

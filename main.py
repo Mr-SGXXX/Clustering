@@ -21,10 +21,11 @@ import traceback
 import os
 import time
 import warnings
+import pyerm
 import pandas as pd
 
 
-from utils import email_reminder, get_logger, make_dir, get_args, save_rst
+from utils import email_reminder, get_logger, make_dir, get_args, save_rst, ExperimentRecorder
 from figures import draw_charts
 from metrics import evaluate
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
@@ -53,6 +54,8 @@ def main():
     )
     reminder = email_reminder(
         cfg.get("global", "email_cfg_path"), logger=logger)
+    experiment_recorder = ExperimentRecorder(cfg)
+    experiment_recorder.experiment_start(description, start_time)
     try:
         # Select the method
         method = cfg.get("global", "method_name")
@@ -97,10 +100,18 @@ def main():
             train_start_time = time.time()
             pred_labels, features = method.train_model()
             metrics = method.metrics
+            acc, nmi, ari, homo, comp = metrics.ACC.last, metrics.NMI.last, metrics.ARI.last, metrics.HOMO.last, metrics.COMP.last
         else:
             raise NotImplementedError(
                 f"Method Type {method_flag} Is Not Implemented!")
 
+        rst_dict = {
+            "ACC": acc,
+            "NMI": nmi,
+            "ARI": ari,
+            "HOMO": homo,
+            "COMP": comp,
+        }
         train_end_time = time.time()
 
         # TODO: draw figures and save the results
@@ -119,7 +130,7 @@ def main():
         logger.info(
             f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
 
-        if cfg.get("global", "save_expeiment_result") == True:
+        if cfg.get("global", "save_experiment_result") == True:
             save_rst(features, metrics, pred_labels, dataset.label, 
                      train_start_time - pretrain_start_time, 
                      train_end_time - train_start_time, description, logger, cfg)
@@ -154,9 +165,14 @@ def main():
             f'Experiment "{description}" Is Successfully Over',
             (log_path, *figure_paths),
         )
+        experiment_recorder.experiment_over(
+            rst_dict, figure_paths, end_time,
+            train_end_time - pretrain_start_time if pretrain_start_time is not None else train_end_time - train_start_time
+        )
         print(f"Experiment: {description} is over...")
     except Exception as e:
         # raise e
+        experiment_recorder.experiment_failed(e)
         error_info = traceback.format_exc()
         logger.info(
             f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")

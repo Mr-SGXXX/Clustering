@@ -18,3 +18,4 @@ cfg/email.cfg
 !weight/DEC_usps_ae_weights.h5
 !weight/DEC_reutersidf10k_ae_weights.h5
 
+./*.xls
