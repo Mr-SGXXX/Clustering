@@ -21,7 +21,6 @@ import traceback
 import os
 import time
 import warnings
-import pyerm
 import pandas as pd
 
 
@@ -66,7 +65,7 @@ def main():
             method_input_types = METHODS_INPUT_TYPES[method]
         else:
             raise NotImplementedError(
-                f"Method {method} not included in the `METHODS_INPUT_IMG_FLAG`")
+                f"Method {method} not in the `METHODS_INPUT_TYPES`")
         if method in CLASSICAL_METHODS:
             method = CLASSICAL_METHODS[method]
             method_flag = "classical"

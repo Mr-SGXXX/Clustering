@@ -35,8 +35,8 @@ from datasetLoader import ClusteringDataset
 from metrics import Metrics, normalized_mutual_info_score as cal_nmi
 from utils import config
 
-from .backbone.EDESC_AE import EDESC_AE
-from .loss.EDESC_loss import D_constraint1, D_constraint2
+from .EDESC.EDESC_AE import EDESC_AE
+from .EDESC.EDESC_loss import D_constraint1, D_constraint2
 from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
 from .base import DeepMethod
 

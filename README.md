@@ -18,7 +18,7 @@ In the recent years, as the representation of unsupervised tasks, the clustering
 2. After downloading the repository, you need to construct a proper python environment. I advise you to use the conda, which can easily build a nice environment without influencing your other project setting. You can download Anaconda [here](https://anaconda.org/anaconda/conda), but I suggest you to install miniconda following this [site](https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html).
    To create a new conda environment, you can use the following command:
    ```shell
-   conda create -n clustering python=3.8
+   conda create -n clustering python=3.9
    conda activate clustering
    ```
 

@@ -21,7 +21,7 @@
 from .img import IMG_DATASETS
 from .seq import SEQ_DATASETS
 from .base import ClusteringDataset
-from .utils import reassign_dataset
+from .seq.utils import reassign_dataset
 
 # Each dataset here should be a `ClusteringDataset` class with following elements:
 #   name: the name of the dataset, str

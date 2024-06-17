@@ -18,7 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from .Reuters10K import Reuters10K
+from .XYh5_scRNA import XYh5_scRNA
 
 SEQ_DATASETS = {
     "Reuters10K": Reuters10K,
+    "XYh5_scRNA": XYh5_scRNA
 }

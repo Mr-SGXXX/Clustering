@@ -34,10 +34,10 @@ from datasetLoader import ClusteringDataset, reassign_dataset
 from metrics import normalized_mutual_info_score as cal_nmi
 from utils import config
 
-from .backbone.DeepCluster_AlexNet import alexnet
-from .backbone.DeepCluster_VGG import vgg16
-from .utils.DeepCluster_utils import Kmeans, PIC, UnifLabelSampler, arrange_clustering
-from .base import DeepMethod
+from .DeepCluster_AlexNet import alexnet
+from .DeepCluster_VGG import vgg16
+from .DeepCluster_utils import Kmeans, PIC, UnifLabelSampler, arrange_clustering
+from ..base import DeepMethod
 
 
 class DeepCluster(DeepMethod):

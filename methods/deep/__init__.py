@@ -43,11 +43,6 @@ If ground truth is available, the `y_true` should be passed to the `update` meth
 the args must be the same as the base class in `base.py`.
 """
 DEEP_METHODS = {
-    "DivClust": DivClust,
-    # Cai J, Fan J, Guo W, et al. Efficient deep embedded subspace clustering
-    # CVPR. 2022: 1-10.
-    # Link: https://openaccess.thecvf.com/content/CVPR2022/html/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.html
-    "EDESC": EDESC,
     # Xie J, Girshick R, Farhadi A. Unsupervised deep embedding for clustering analysis
     # ICML. 2016, 478-487.
     # Link: http://proceedings.mlr.press/v48/xieb16.pdf
@@ -56,6 +51,11 @@ DEEP_METHODS = {
     # IJCAI. 2017, 17: 1753-1759.
     # Link: https://www.ijcai.org/proceedings/2017/0243.pdf
     "IDEC": IDEC,
+    # Cai J, Fan J, Guo W, et al. Efficient deep embedded subspace clustering
+    # CVPR. 2022: 1-10.
+    # Link: https://openaccess.thecvf.com/content/CVPR2022/html/Cai_Efficient_Deep_Embedded_Subspace_Clustering_CVPR_2022_paper.html
+    "EDESC": EDESC,
+    "DivClust": DivClust,
     "IIC": IIC,
     "CC": CC,
     "DeepCluster": DeepCluster,

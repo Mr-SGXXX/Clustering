@@ -21,6 +21,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import typing
+import os
 
 from utils import config
 
@@ -28,6 +29,11 @@ from utils import config
 class ClusteringDataset(Dataset):
     """
     Base class for all datasets.
+    The detailed dataset should be set and procesed based on this class.
+    When you need to implement a new dataset, you need to inherit this class and implement the `data_init` and `data_preprocess` methods.
+    When you use unlabeled data, you also need to implement the `unlabeled_data_init` method.
+
+    When you want to change the label, just set the `label` attribute to the new label.
 
     Args:
         cfg (config): Config class.
@@ -35,15 +41,22 @@ class ClusteringDataset(Dataset):
 
     Attributes:
         cfg (config): Config class.
-        unlabel_data (torch.Tensor or np.ndarray): Unlabeled data.
-        data (torch.Tensor or np.ndarray): Labeled data.
-        total_length (int): Length of all data.
-        unlabel_length (int): Length of the unlabeled data.
-        label (torch.Tensor or np.ndarray): Labels of the labeled data.
+        needed_data_types (list): A list of data types that the method need.
+        label_data (torch.Tensor or np.ndarray): Labeled data. Need to be set in `label_data_init`.
+        label (torch.Tensor or np.ndarray): Labels of the labeled data. Need to be set in `label_data_init`.
+        unlabel_data (torch.Tensor or np.ndarray): Unlabeled data. Need to be set in `unlabeled_data_init`.
+        total_length (int): Length of all data. Automatically calculated when used.
+        unlabel_length (int): Length of the unlabeled data. Automatically calculated when used.
+        num_classes (int): Number of classes in the dataset. Automatically calculated when used.
 
     Methods:
-        pretrain: Set the dataset to pretrain mode.
-        clustering: Set the dataset to clustering mode.
+        label_data_init() -> Union[torch.Tensor, np.ndarray, list of path], Union[torch.Tensor, np.ndarray, list of label]: 
+            Used to initialize the `label_data` and `label` of the dataset.
+        unlabeled_data_init -> Union[torch.Tensor, np.ndarray, list of path]: 
+            Used to initialize the `unlabel_data` of the dataset.
+        data_preprocess -> Union[torch.Tensor, np.ndarray]: 
+            Preprocess the every data loaded in `data_init` and `unlabeled_data_init`, return the preprocessed data, `torch.Tensor` or `np.ndarray`. Default to return the sample directly.
+        
     """
 
     def __init__(self, cfg: config, needed_data_types: list):
@@ -51,12 +64,15 @@ class ClusteringDataset(Dataset):
         Initialize the dataset.
         """
         self.cfg = cfg
-        self._pretrain = False
+        self.needed_data_types = needed_data_types
+        self._full_data = True
+        self._label_data = None
+        self._label = None
         self._unlabel_data = None
-        self._data = None
-        self._len = None
+        self._label_len = None
         self._unlabel_len = None
-        self.label = None
+        self._num_classes = None
+        self._input_dim = None
 
     def __len__(self) -> int:
         """
@@ -65,10 +81,10 @@ class ClusteringDataset(Dataset):
         In the pretrain mode, if there is any unlabeled data, return the length of all data
         In the clustering mode, return the length of the labeled data
         """
-        if self._pretrain or self.label is None:
-            return self.total_length
+        if self._full_data or self.label is None:
+            return self.label_length + self.unlabel_length
         else:
-            return self.total_length - self.unlabel_length
+            return self.label_length
         
     def __getitem__(self, index) -> typing.Tuple[torch.Tensor, typing.Union[torch.Tensor, None], torch.Tensor]:
         """
@@ -78,89 +94,118 @@ class ClusteringDataset(Dataset):
 
         for those unlabeled data, return (torch.Tensor, None, torch.Tensor)
         """
-        return super().__getitem__(index)
+        data = self.data_preprocess(self.label_data[index])
+        if type(data) is not torch.Tensor and type(data) is not np.ndarray:
+            raise ValueError(
+                "The data should be torch.Tensor or np.ndarray after the data preprocess")
+        if index < self.label_length:
+            return torch.from_numpy(np.array(data)), \
+                torch.from_numpy(np.array(self.label[index])), \
+                torch.from_numpy(np.array(index))
+        else:
+            return torch.from_numpy(np.array(data)), None, torch.from_numpy(np.array(index))
 
-    def pretrain(self):
+
+    def data_preprocess(self, sample) -> typing.Union[torch.Tensor, np.ndarray]:
+        """
+        preprocess a single sample, return the preprocessed data, torch.Tensor or np.ndarray
+
+        When you need to preprocess the data of single sample (the data is not a Tensor when loaded in `data_init`), you need to override this method
+        """
+        return sample
+
+    def use_full_data(self):
         """
         set the dataset to pretrain mode, not suggested to change the default implementation
         """
-        self._pretrain = True
+        self._full_data = True
 
-    def clustering(self):
+    def use_label_data(self):
         """
         set the dataset to clustering mode, not suggested to change the default implementation
         """
-        self._pretrain = False
+        if self.label is None:
+            print("There is no available label data, use the full data instead")
+            self._full_data = True
+        else:
+            self._full_data = False
 
-    def data_init(self):
+
+    def label_data_init(self):
         """
         initialize the `data` of the dataset as `np.ndarray`, it should return the `np.ndarray`
 
         if the dataset loads each data in the __getitem__ method, the `data_init` is suggested to be implemented
         """
-        return self._data
+        return None, None
 
     def unlabeled_data_init(self):
         """
-        initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return the `np.ndarray`
+        initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return the `np.ndarray`.
 
         if the dataset loads each data in the __getitem__ method, the `unlabeled_data_init` is suggested to be implemented
         """
-        return self._unlabel_data
+        return None
 
     @property
-    def total_length(self):
+    def label_length(self):
         """
-        the total length of the dataset, int
-       
-        if the dataset loads each data in the __getitem__ method, the value of `total_length` is suggested to be set in the `__init__` method
+        the label length of the dataset, int, automatically calculated when used
         """
-        if self._len is None and type(self._data) is torch.Tensor or type(self._data) is np.ndarray:
-            self._len = self._data.shape[0]
-        else:
+        if self._label_len is None:
+            if self.label_data is None:
+                self._label_len = 0
             raise ValueError(
-                "Directly set the `total_length` first or set `data` first")
-        return self._len
-
-    @total_length.setter
-    def total_length(self, new_len):
-        self._len = new_len
+                "Directly use the `label_length` or set `data` first")
+        return self._label_len
 
     @property
     def unlabel_length(self):
         """
-        the length of the unlabel data, int, default to 0
-        
-        if the dataset loads each data in the __getitem__ method, the value of `unlabel_length` is suggested to be set in the `__init__` method
+        the length of the unlabel data, int, default to 0, automatically calculated when used
         """
         if self._unlabel_len is None:
-            if self._unlabel_data is None:
+            if self.unlabel_data is None:
                 self._unlabel_len = 0
-            elif type(self._unlabel_data) is torch.Tensor or type(self._unlabel_data) is np.ndarray:
-                self._unlabel_len = self._unlabel_data.shape[0]
             else:
                 raise ValueError(
-                    "Directly set the `unlabel_length` first or set `unlabel_data` first")
+                    "Directly use the `unlabel_length` or set `unlabel_data` first")
         return self._unlabel_len
 
-    @unlabel_length.setter
-    def unlabel_length(self, new_len):
-        self._unlabel_len = new_len
+    @property
+    def label_data(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
+        """
+        all the labeled data of the dataset, numpy.ndarray
+
+        Automatically calculated when used by `label_data_init`
+        """
+        if self._label_data is None:
+            self._label_data, self._label = self.label_data_init()
+            if self._label_data is not None:
+                self._label_len = len(self._data)
+            if self._input_dim is None:
+                self._input_dim = self._data.shape[1:]
+            else:
+                assert self._input_dim == self._data.shape[1:], "The shape of the data should be the same as the input dim"
+        return self._label_data
 
     @property
-    def data(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
+    def label(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
         """
-        all the data of the dataset containing the labeled and unlabeled data, numpy.ndarray
-        
-        if the dataset loads each data in the __getitem__ method, the `data_init` is suggested to be implemented
-        """
-        if self._data is None:
-            self._data = self.data_init()
-        return self._data
+        all the labels of the labeled data, numpy.ndarray
 
-    @data.setter
-    def data(self, new_data):
-        self._data = new_data
+        Automatically calculated when used by `label_data_init`
+        """
+        if self._label is None:
+            self._label_data, self._label = self.label_data_init()
+            if self._label is not None:
+                self._label_len = len(self._label)
+        return self._label
+    
+    @label.setter
+    def label(self, new_label):
+        assert len(new_label) == len(self._label_data), "The length of the label should be the same as the data"
+        self._label = new_label
 
     @property
     def unlabel_data(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
@@ -175,8 +220,29 @@ class ClusteringDataset(Dataset):
         """
         if self._unlabel_data is None:
             self._unlabel_data = self.unlabeled_data_init()
+            if self._unlabel_data is not None:
+                self._unlabel_len = len(self._unlabel_data)
+            if self._input_dim is None:
+                self._input_dim = self._unlabel_data.shape[1:]
+            else:
+                assert self._input_dim == self._unlabel_data.shape[1:], "The shape of the unlabel data should be the same as the input dim"
         return self._unlabel_data
+    
+    @property
+    def num_classes(self) -> int:
+        """
+        the number of classes in the dataset, int
+        """
+        if self._num_classes is None:
+            self._num_classes = len(np.unique(self.label))
+        return self._num_classes
+    
+    @property
+    def input_dim(self) -> typing.Tuple[int]:
+        """
+        the input dimension of the dataset, tuple of int
+        """
+        
+        return self._input_dim
 
-    @data.setter
-    def unlabel_data(self, new_data):
-        self._unlabel_data = new_data
+    

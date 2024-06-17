@@ -32,10 +32,10 @@ import os
 from metrics import normalized_mutual_info_score as cal_nmi
 from datasetLoader import ClusteringDataset
 from utils import config
-from .base import DeepMethod
-from .backbone.CC_resnet import get_resnet, Network
-from .loss.CC_loss import InstanceLoss, ClusterLoss
-from .utils.CC_utils import Transforms
+from ..base import DeepMethod
+from .CC_resnet import get_resnet, Network
+from .CC_loss import InstanceLoss, ClusterLoss
+from .CC_utils import Transforms
 
 
 class CC(DeepMethod):

@@ -19,9 +19,7 @@
 # SOFTWARE.
 
 # This method reproduction refers to the following repository:
-# https://github.com/piiswrong/dec/tree/master
 # https://github.com/XifengGuo/IDEC
-# https://github.com/vlukiyanov/pt-dec
 from logging import Logger
 import torch
 import torch.nn as nn
@@ -32,29 +30,33 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset
-from metrics import normalized_mutual_info_score as cal_nmi
+from metrics import Metrics, normalized_mutual_info_score as cal_nmi
 from utils import config
 
-from .base import DeepMethod
-from .backbone.DEC_AE import DEC_AE
-# from .backbone.EDESC_AE import EDESC_AE as DEC_AE
-from .backbone.layers.DEC_ClusteringLayer import ClusteringLayer
-from .utils.DEC_utils import target_distribution
+from ..base import DeepMethod
+from ..DEC.DEC_AE import DEC_AE
+from ..layers import ClusteringLayer
+from ..DEC.DEC_utils import target_distribution
+import torch
+from torch.utils.data import DataLoader
 
 
-class DEC(DeepMethod):
+class IDEC(DeepMethod):
     def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
-        self.encoder_dims = cfg.get("DEC", "encoder_dims")
-        self.hidden_dim = cfg.get("DEC", "hidden_dim")
-        self.alpha = cfg.get("DEC", "alpha")
-        self.batch_size = cfg.get("DEC", "batch_size")
-        self.pretrain_lr = cfg.get("DEC", "pretrain_learn_rate")
-        self.lr = cfg.get("DEC", "learn_rate")
-        self.momentum = cfg.get("DEC", "momentum")
-        self.train_max_epoch = cfg.get("DEC", "train_max_epoch")
-        self.tol = cfg.get("DEC", "tol")
+        self.encoder_dims = cfg.get("IDEC", "encoder_dims")
+        self.hidden_dim = cfg.get("IDEC", "hidden_dim")
+        self.alpha = cfg.get("IDEC", "alpha")
+        self.gamma = cfg.get("IDEC", "gamma")
+        self.batch_size = cfg.get("IDEC", "batch_size")
+        self.pretrain_lr = cfg.get("IDEC", "pretrain_learn_rate")
+        self.lr = cfg.get("IDEC", "learn_rate")
+        self.tol = cfg.get("IDEC", "tol")
+        self.update_interval = cfg.get("IDEC", "update_interval")
+        self.momentum = cfg.get("IDEC", "momentum")
+        self.train_max_epoch = cfg.get("IDEC", "train_max_epoch")
+        self.tol = cfg.get("IDEC", "tol")
 
         self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
         self.clustering_layer = ClusteringLayer(self.n_clusters, self.hidden_dim, self.alpha).to(self.device)
@@ -82,7 +84,7 @@ class DEC(DeepMethod):
 
     def pretrain(self):
         self.dataset.pretrain()
-        pretrain_path = self.cfg.get("DEC", "pretrain_file")
+        pretrain_path = self.cfg.get("IDEC", "pretrain_file")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
         else:
@@ -96,15 +98,14 @@ class DEC(DeepMethod):
             else:
                 raise NotImplementedError(f"Pretrained weight format {os.path.splitext(pretrain_path)[1]} not supported!")
         else:
+            train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
-                self.logger.info("Not use pretrained weight, Pretraining...")
-            
-            if self.cfg.get("DEC", "layer_wise_pretrain"):
+                self.logger.info("Not using pretrained weight, Pretraining...")
+            if self.cfg.get("IDEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
-                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
                 with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                     for i in level_loader:
                         optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -148,6 +149,7 @@ class DEC(DeepMethod):
                             self.logger.info(f"Pretrain Period2 Epoch {it}\tLoss {total_loss / len(train_loader):.4f}")
             else:
                 # Pretrain in a quick way (not layer-wise)
+                self.ae.defreeze()
                 optimizer = optim.Adam(self.ae.parameters(), lr = 0.001)
                 with tqdm(range(100), desc="Pretrain Stacked AE Quickly", dynamic_ncols=True, leave=False) as epoch_loader:
                     for it in epoch_loader:
@@ -175,39 +177,55 @@ class DEC(DeepMethod):
         es_count = 0
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
         # optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        train_loader = DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
+        train_loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
 
         z, _ = self.encode_dataset()
         y_pred= self.clustering_layer.kmeans_init(z)
         y_pred_last = y_pred
+        iter_time = 0
+        stop_train_flag = False
         with tqdm(range(self.train_max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
                 total_loss = 0
-                z, q = self.encode_dataset()
-                p = target_distribution(q)
-                y_pred = q.cpu().detach().numpy().argmax(1)
-                delta_label = np.sum(y_pred != y_pred_last).astype(
-                    np.float32) / y_pred.shape[0]
-                delta_nmi = cal_nmi(y_pred, y_pred_last)
-                y_pred_last = y_pred
+                total_rec_loss = 0
+                total_kl_loss = 0
                 if self.cfg.get("global", "record_sc"):
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
                 else:
                     _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
+                    if iter_time % self.update_interval == 0:
+                        z, q_full = self.encode_dataset()
+                        p = target_distribution(q_full)  
+                    iter_time += 2
                     data = data.to(self.device)
-                    x_bar, q, z = self(data)
-                    loss = nn.KLDivLoss(reduction='batchmean')(q.log(), p[idx])
-                    total_loss += loss.item()
+                    x_bar, q, _ = self(data)
+                    rec_loss = nn.MSELoss()(x_bar, data)
+                    kl_loss = nn.KLDivLoss(reduction='batchmean')(q.log(), p[idx])
+                    loss = rec_loss + self.gamma * kl_loss 
+                    # loss = rec_loss * self.gamma + kl_loss 
+                    # loss = kl_loss 
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+                    total_loss += loss.item()
+                    total_rec_loss += rec_loss.item()
+                    total_kl_loss += kl_loss.item()
                 total_loss /= len(train_loader)
-                self.metrics.update_loss(total_loss=total_loss)
+                total_rec_loss /= len(train_loader)
+                total_kl_loss /= len(train_loader)
+                self.metrics.update_loss(
+                    total_loss=total_loss, 
+                    total_rec_loss=total_rec_loss,
+                    total_kl_loss=total_kl_loss
+                )
+                y_pred = q_full.cpu().detach().numpy().argmax(1)
+                delta_label = np.sum(y_pred != y_pred_last).astype(
+                            np.float32) / y_pred.shape[0]
+                delta_nmi = cal_nmi(y_pred, y_pred_last)
+                y_pred_last = y_pred
                 if epoch % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
-                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
                 else:

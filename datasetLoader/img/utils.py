@@ -67,7 +67,7 @@ class ResNet50Extractor(nn.Module):
         dataset = TensorDataset(data)  
         self.dataloader = DataLoader(dataset, batch_size=64, shuffle=False)
 
-    def forward(self):
+    def forward(self)->np.ndarray:
         features = []
         with tqdm(self.dataloader, desc="Extracting features", dynamic_ncols=True, leave=False) as dataloader:
             for img, in dataloader:

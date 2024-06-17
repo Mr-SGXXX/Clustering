@@ -22,7 +22,7 @@ from pyerm import Experiment
 from .config import config
 
 class ExperimentRecorder:
-    def __init__(self, cfg:config, task_name:str="Clustering", db_path:str=None):
+    def __init__(self, cfg:config, task_name:str="Clustering", db_path:str="./result/experiments.db"):
         self.experiment = Experiment(db_path)
         self.experiment.task_init(task_name)
         dataset_name = cfg['global']['dataset']

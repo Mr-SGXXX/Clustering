@@ -32,43 +32,40 @@ class CIFAR100(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
         self.name = 'CIFAR100'
-        data_dir = cfg.get("global", "dataset_dir")
-        super_class_flag = cfg.get("CIFAR100", "super_class")
+    
+    def label_data_init(self):
+        data_dir = self.cfg.get("global", "dataset_dir")
+        super_class_flag = self.cfg.get("CIFAR100", "super_class")
         train_dataset = datasets.CIFAR100(data_dir, train=True, download=True)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True)
         if super_class_flag:
             train_dataset.targets = sparse2coarse(train_dataset.targets)
             test_dataset.targets = sparse2coarse(test_dataset.targets)
-        self.data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
-        self.data = self.data.transpose((0, 3, 1, 2))
-        if 'img' in needed_data_types:
+        data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
+        data = data.transpose((0, 3, 1, 2))
+        if 'img' in self.needed_data_types:
             self.data_type = 'img'
-            self.input_dim = self.data.shape[1:]
-        elif 'seq' in needed_data_types:
-            if cfg.get("CIFAR100", "img2seq_method") == 'flatten':
-                self.data = self.data.reshape(self.data.shape[0], -1).astype(np.float32)
-            elif cfg.get("CIFAR100", "img2seq_method") == 'resnet50':
+        elif 'seq' in self.needed_data_types:
+            if self.cfg.get("CIFAR100", "img2seq_method") == 'flatten':
+                data = data.reshape(data.shape[0], -1).astype(np.float32)
+            elif self.cfg.get("CIFAR100", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'cifar-100-python')
                 if os.path.exists(os.path.join(data_dir, 'CIFAR100_resnet50.npy')):
-                    self.data = np.load(os.path.join(data_dir, 'CIFAR100_resnet50.npy'))
+                    data = np.load(os.path.join(data_dir, 'CIFAR100_resnet50.npy'))
                 else:
-                    self.data = ResNet50Extractor(self.data, cfg)().astype(np.float32)
-                    np.save(os.path.join(data_dir, 'CIFAR100_resnet50.npy'), self.data)
+                    data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
+                    np.save(os.path.join(data_dir, 'CIFAR100_resnet50.npy'), data)
             else:
-                raise ValueError(f"`{cfg.get('CIFAR100', 'img2seq_method')}` is not an available img2seq_method for CIFAR100")
+                raise ValueError(f"`{self.cfg.get('CIFAR100', 'img2seq_method')}` is not an available img2seq_method for CIFAR100")
             self.data_type = 'seq'
-            self.input_dim = self.data.shape[1]
         else:
-            raise ValueError(f"No available data type for CIFAR100 in {needed_data_types}")
-        self.label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
-        self.label = self.label.reshape((self.label.size,))
+            raise ValueError(f"No available data type for CIFAR100 in {self.needed_data_types}")
+        label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
+        label = label.reshape((label.size,))
+        return data, label
 
-        self.num_classes = len(np.unique(self.label))
-    
-    def __getitem__(self, index):
-        return torch.from_numpy(np.array(self.data[index])), \
-            torch.from_numpy(np.array(self.label[index])), \
-            torch.from_numpy(np.array(index))
+    def data_preprocess(self, sample) -> torch.Tensor | np.ndarray:
+        return sample
     
 
 def sparse2coarse(targets):
