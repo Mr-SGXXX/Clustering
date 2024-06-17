@@ -242,7 +242,7 @@ def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     for i in range(len(losses_list)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
-    plt.xlim(1, len(losses_list[0]) + 1)
+    plt.xlim(1, int(len(losses_list[0]) * 1.1))
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
@@ -259,7 +259,7 @@ def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     for i in range(len(losses_list)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
-    plt.xlim(1, len(losses_list[0]) + 1)
+    plt.xlim(1, int(len(losses_list[0]) * 1.1))
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Clustering Loss Chart", fontsize=14)
@@ -273,7 +273,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     epochs = list(range(1, len(loss_list) + 1))
     fig, ax1 = plt.subplots(figsize=figsize)
 
-    plt.xlim(1, len(loss_list) + 1)
+    plt.xlim(1, int(len(loss_list) * 1.1))
     # Plotting for ax1
     loss_line, = ax1.plot(epochs, loss_list, color='steelblue',
                           linewidth=1, label='Total Loss')
@@ -303,7 +303,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
             ax2.plot(max_epoch, max_value, 'o', color=color[metric], markersize=4)
             max_x, max_adjusted_y = adjust_text_position(max_epoch, max_value, text_positions)
             ax2.text(max_x, max_adjusted_y, f'{max_value:.2f}', fontsize=10, ha='center', va='bottom')
-            ax2.axvline(x=max_epoch, color=color[metric], linestyle='--', linewidth=0.5)
+            ax2.vlines(x=max_x, ymin=max_value, ymax=max_adjusted_y, color=color[metric], linestyle='--', linewidth=0.5)
             text_positions.append((max_x, max_adjusted_y))
 
             # For the last value, if it's not the max: mark, annotate
@@ -335,7 +335,7 @@ def adjust_text_position(x, y, existing_positions, threshold=0.02):
     """
     adjusted_y = y + 0.008  # Initial adjustment
     for pos in existing_positions:
-        while abs(adjusted_y - pos[1]) < threshold:
+        while abs(x - pos[0]) < 0.5 and abs(adjusted_y - pos[1]) < threshold:
             # Adjust the position up or down based on comparison
             adjusted_y += threshold if adjusted_y > pos[1] else -threshold
     return x, adjusted_y

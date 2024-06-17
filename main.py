@@ -52,8 +52,11 @@ def main():
     logger.info(
         f"Experiment {description}\tSeed {cfg.get('global', 'seed')}\tDevice {cfg.get('global', 'device')}"
     )
-    reminder = email_reminder(
-        cfg.get("global", "email_cfg_path"), logger=logger)
+    if cfg.get("global", "email_cfg_path") is not None and os.path.exists(cfg.get("global", "email_cfg_path")):
+        reminder = email_reminder(
+            cfg.get("global", "email_cfg_path"), logger=logger)
+    else:
+        reminder = None
     experiment_recorder = ExperimentRecorder(cfg)
     experiment_recorder.experiment_start(description, start_time)
     try:
@@ -132,7 +135,7 @@ def main():
 
         if cfg.get("global", "save_experiment_result") == True:
             save_rst(features, metrics, pred_labels, dataset.label, 
-                     train_start_time - pretrain_start_time, 
+                     train_start_time - pretrain_start_time if pretrain_start_time is not None else 0, 
                      train_end_time - train_start_time, description, logger, cfg)
         try:
             figure_paths = draw_charts(
@@ -153,18 +156,19 @@ def main():
             logger.info(f"Figures Generation Failed for {error_info}")
         end_time = time.time()
         logger.info(f"Total Time Cost: {end_time - start_time:.2f}s")
-        reminder.send_message(
-            f"Experiment {description} is over.\n" +
-            f"Method: {cfg.get('global', 'method_name')}\n" +
-            f"Dataset: {cfg.get('global', 'dataset')}\n" +
-            f"Metrics:\n{metrics}\n"
-            f"Total time: {end_time - start_time:.2f}s\n" +
-            (f"Pretrain time: {train_start_time - pretrain_start_time:.2f}s\n" if pretrain_start_time is not None else "") +
-            f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
-            "\n\n\n\n" + str(cfg),
-            f'Experiment "{description}" Is Successfully Over',
-            (log_path, *figure_paths),
-        )
+        if reminder is not None:
+            reminder.send_message(
+                f"Experiment {description} is over.\n" +
+                f"Method: {cfg.get('global', 'method_name')}\n" +
+                f"Dataset: {cfg.get('global', 'dataset')}\n" +
+                f"Metrics:\n{metrics}\n"
+                f"Total time: {end_time - start_time:.2f}s\n" +
+                (f"Pretrain time: {train_start_time - pretrain_start_time:.2f}s\n" if pretrain_start_time is not None else "") +
+                f"Clustering time: {train_end_time - train_start_time:.2f}s\n" +
+                "\n\n\n\n" + str(cfg),
+                f'Experiment "{description}" Is Successfully Over',
+                (log_path, *figure_paths),
+            )
         experiment_recorder.experiment_over(
             rst_dict, figure_paths, end_time,
             train_end_time - pretrain_start_time if pretrain_start_time is not None else train_end_time - train_start_time
@@ -172,20 +176,20 @@ def main():
         print(f"Experiment: {description} is over...")
     except Exception as e:
         # raise e
-        experiment_recorder.experiment_failed(e)
         error_info = traceback.format_exc()
         logger.info(
             f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
-        reminder.send_message(
-            f"Experiment {description} failed.\n" +
-            f"Method: {cfg.get('global', 'method_name')}\n" +
-            f"Dataset: {cfg.get('global', 'dataset')}\n" +
-            f"Error Message: {e}\n" +
-            f"Full traceback:{error_info}" +
-            "\n\n\n\n" + str(cfg),
-            f'Experiment "{description}" Failed for {e}',
-            (log_path, ),
-        )
+        if reminder is not None:
+            reminder.send_message(
+                f"Experiment {description} failed.\n" +
+                f"Method: {cfg.get('global', 'method_name')}\n" +
+                f"Dataset: {cfg.get('global', 'dataset')}\n" +
+                f"Error Message: {e}\n" +
+                f"Full traceback:{error_info}" +
+                "\n\n\n\n" + str(cfg),
+                f'Experiment "{description}" Failed for {e}',
+                (log_path, ),
+            )
         print(f"Experiment: {description} failed...")
 
 
