@@ -19,6 +19,8 @@
 # SOFTWARE.
 import torch
 from torch.utils.data import Dataset
+import torch_geometric as pyg
+from torch_geometric.data import Dataset as PygDataset
 import numpy as np
 import typing
 import os
@@ -131,9 +133,9 @@ class ClusteringDataset(Dataset):
             self._full_data = False
 
 
-    def label_data_init(self):
+    def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray], typing.Union[torch.Tensor, np.ndarray]]:
         """
-        initialize the `data` of the dataset as `np.ndarray`, it should return the `np.ndarray`
+        initialize the `data` of the dataset as `np.ndarray` or `torch.Tensor`, and the `label` of the dataset as `np.ndarray` or `torch.Tensor`.
 
         if the dataset loads each data in the __getitem__ method, the `data_init` is suggested to be implemented
         """
@@ -146,6 +148,12 @@ class ClusteringDataset(Dataset):
         if the dataset loads each data in the __getitem__ method, the `unlabeled_data_init` is suggested to be implemented
         """
         return None
+    
+    def load_as_graph(self) -> PygDataset:
+        """
+        An optional method to load the data as a graph, return the graph data, torch_geometric.data.Data
+        """
+        raise NotImplementedError("The method should be implemented in the dataset class")
 
     @property
     def label_length(self):
@@ -182,11 +190,16 @@ class ClusteringDataset(Dataset):
         if self._label_data is None:
             self._label_data, self._label = self.label_data_init()
             if self._label_data is not None:
-                self._label_len = len(self._data)
-            if self._input_dim is None:
-                self._input_dim = self._data.shape[1:]
-            else:
-                assert self._input_dim == self._data.shape[1:], "The shape of the data should be the same as the input dim"
+                self._label_len = len(self._label_data)
+                if self._input_dim is None:
+                    if type(self._label_data) is np.ndarray or type(self._label_data) is torch.Tensor:
+                        self._input_dim = self._label_data.shape[1:]
+                    else:
+                        self._input_dim = self.data_preprocess(self._label_data[0]).shape
+                    if len(self._input_dim) == 1:
+                        self._input_dim = self._input_dim[0]
+                else:
+                    assert self._input_dim == self._label_data.shape[1:] if type(self._input_dim) is list else self._input_dim == self._label_data.shape[1], "The shape of the data should be the same as the input dim"
         return self._label_data
 
     @property
@@ -197,8 +210,7 @@ class ClusteringDataset(Dataset):
         Automatically calculated when used by `label_data_init`
         """
         if self._label is None:
-            self._label_data, self._label = self.label_data_init()
-            if self._label is not None:
+            if self.label_data is not None:
                 self._label_len = len(self._label)
         return self._label
     
@@ -222,10 +234,15 @@ class ClusteringDataset(Dataset):
             self._unlabel_data = self.unlabeled_data_init()
             if self._unlabel_data is not None:
                 self._unlabel_len = len(self._unlabel_data)
-            if self._input_dim is None:
-                self._input_dim = self._unlabel_data.shape[1:]
-            else:
-                assert self._input_dim == self._unlabel_data.shape[1:], "The shape of the unlabel data should be the same as the input dim"
+                if self._input_dim is None:
+                    if type(self._unlabel_data) is np.ndarray or type(self._unlabel_data) is torch.Tensor:
+                        self._input_dim = self._unlabel_data.shape[1:]
+                    else:
+                        self._input_dim = self._unlabel_data.shape[1:]
+                    if len(self._input_dim) == 1:
+                        self._input_dim = self._input_dim[0]
+                else:
+                    assert self._input_dim == self._unlabel_data.shape[1:] if type(self._input_dim) is list else self._input_dim == self._unlabel_data.shape[1], "The shape of the data should be the same as the input dim"
         return self._unlabel_data
     
     @property
@@ -242,7 +259,9 @@ class ClusteringDataset(Dataset):
         """
         the input dimension of the dataset, tuple of int
         """
-        
+        if self._input_dim is None:
+            if self.label_data is None and self.unlabel_data is None:
+                raise ValueError("No available data")
         return self._input_dim
 
     

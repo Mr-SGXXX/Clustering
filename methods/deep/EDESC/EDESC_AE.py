@@ -22,7 +22,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..backbone.layers import build_MLP_net
+from ..layers import build_MLP_net
 
 # class EDESC_AE(nn.Module):
 #     def __init__(self, n_input, encoder_dims, decoder_dims, n_z):

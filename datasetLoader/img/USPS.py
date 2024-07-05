@@ -57,5 +57,5 @@ class USPS(ClusteringDataset):
         self.label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
         self.label = self.label.reshape((self.label.size,))
     
-    def data_preprocess(self, sample) -> torch.Tensor | np.ndarray:
+    def data_preprocess(self, sample):
         return sample

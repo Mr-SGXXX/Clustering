@@ -28,7 +28,7 @@ METHODS_INPUT_TYPES = {
 }
 
 if os.path.exists("methods/my_test/__init__.py"):
-    from .mine import *
+    from .demo import *
     for method in MY_METHODS:
         if MY_METHODS_TYPE_FLAG[method] == "deep":
             DEEP_METHODS[method] = MY_METHODS[method]

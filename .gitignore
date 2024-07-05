@@ -4,13 +4,13 @@ figures/*
 result/*
 weight/*
 data/*
-methods/mine
+methods/demo
 ./*.xls
 
 cfg/email.cfg
 .vscode/launch.json
 
-!result/experiments.db
+result/experiments.db
 
 !data/Reuters10K
 !data/ImageNet-10

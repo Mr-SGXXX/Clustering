@@ -23,7 +23,7 @@ import torch.nn.init as init
 import numpy as np
 import h5py
 
-from .layers import build_MLP_net
+from ..layers import build_MLP_net
 
 class DEC_AE(nn.Module):
     def __init__(self, n_input, encoder_dims, n_z):

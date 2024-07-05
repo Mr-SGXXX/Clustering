@@ -44,5 +44,5 @@ class Reuters10K(ClusteringDataset):
         Y = Y.reshape((Y.size,))
         return X, Y
     
-    def data_preprocess(self, sample) -> torch.Tensor | np.ndarray:
+    def data_preprocess(self, sample):
         return sample

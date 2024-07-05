@@ -99,5 +99,5 @@ class STL10(ClusteringDataset):
             raise ValueError(f"No available data type for STL10 in {self.needed_data_types}")
         return data
     
-    def data_preprocess(self, sample) -> torch.Tensor | np.ndarray:
+    def data_preprocess(self, sample):
         return sample

@@ -28,8 +28,18 @@ In the recent years, as the representation of unsupervised tasks, the clustering
    ```
 
 4. After preparing the running environment, you can choose which dataset for clustering and which method you want to use in the [config files](./cfg/example.cfg). For the chosen dataset or method, you can also change the hyper-parameters setting in the config file.
-   
-5. After the experiment, there will be a log file containing the collected message during the experiment as well as a set of figures generated based the features and scores of the experiment. If you stop too many experiments, you can use the following bash script to remove the useless log.
+
+5. Run the experiment you set in the config file by the following bash command:
+   ```shell
+   python main.py --config_path /path/to/config.cfg --device 0
+   ```
+   or just:
+   ```shell
+   python main.py -cp /path/to/config.cfg -d 0
+   ```
+   then just wait or do anything else you want.
+
+6. After the experiment, there will be a log file containing the collected message during the experiment as well as a set of figures generated based the features and scores of the experiment. If you stop too many experiments, you can use the following bash script to remove the useless log.
    ```shell
    bash ./clean_log.sh /path/to/log /path/to/figures 
    ```
@@ -39,7 +49,7 @@ In the recent years, as the representation of unsupervised tasks, the clustering
    ```
    **Notice: Do Not Use The Script When Running Any Experiment.**
    
-6.  If you want to add a new method or dataset based on this repository, you can firstly lookup the '\_\_init\_\_.py' file for method package (divided into [classical](./methods/classical/__init__.py) methods and [deep](./methods/deep/__init__.py) methods) or [dataset package](./datasetProcesser/__init__.py). Then you can design your method and benefit from the pipeline.
+7.  If you want to add a new method or dataset based on this repository, you can firstly lookup the '\_\_init\_\_.py' file for method package (divided into [classical](./methods/classical/__init__.py) methods and [deep](./methods/deep/__init__.py) methods) or [dataset package](./datasetProcesser/__init__.py). Then you can design your method and benefit from the pipeline.
 
 
 ## Methods List
@@ -145,7 +155,7 @@ The possible difference reasons from my personal view:
 - There may be some bugs in this repository which influence the score of some methods. If you find any bug, welcome to raise issues or contact me through email.
 
 The hardware environment accessible to me as follows:
-- CPU: AMD EPYC 7302 16-Core Processor
+- CPU: Intel(R) Core(TM) i9-10900X CPU @ 3.70GHz
 - GPU: NVIDIA GTX 2080ti
 - Memory Size: 64GB
 

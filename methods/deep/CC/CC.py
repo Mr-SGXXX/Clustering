@@ -75,11 +75,11 @@ class CC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        self.dataset.pretrain()
+        self.dataset.use_full_data()
         return None
 
     def train_model(self):
-        self.dataset.clustering()
+        self.dataset.use_label_data()
         if self.resume is not None:
             checkpoint = torch.load(self.resume).to(self.device)
             self.model.load_state_dict(checkpoint['net'])

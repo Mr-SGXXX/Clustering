@@ -83,7 +83,7 @@ class IDEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        self.dataset.pretrain()
+        self.dataset.use_full_data()
         pretrain_path = self.cfg.get("IDEC", "pretrain_file")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
@@ -104,6 +104,7 @@ class IDEC(DeepMethod):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain"):
                 self.logger.info("Not using pretrained weight, Pretraining...")
+                
             if self.cfg.get("IDEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
                 with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
@@ -172,7 +173,7 @@ class IDEC(DeepMethod):
         return self.encode_dataset()[0]
 
     def train_model(self):
-        self.dataset.clustering()
+        self.dataset.use_label_data()
         self.ae.defreeze()
         es_count = 0
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)

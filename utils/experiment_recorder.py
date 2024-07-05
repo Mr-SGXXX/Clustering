@@ -39,7 +39,7 @@ class ExperimentRecorder:
         self.experiment.experiment_over(rst_dict, images, end_time, useful_time_cost)
     
     def experiment_failed(self, exception:Exception, end_time=None):
-        self.experiment.experiment_failed(exception, end_time)
+        self.experiment.experiment_failed(str(exception), end_time)
 
     def detail_update(self, detail_dict):
         self.experiment.detail_update(detail_dict)

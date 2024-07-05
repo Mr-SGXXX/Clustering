@@ -58,5 +58,5 @@ class FashionMNIST(ClusteringDataset):
         label = label.reshape((label.size,))
         return data, label
 
-    def data_preprocess(self, sample) -> torch.Tensor | np.ndarray:
+    def data_preprocess(self, sample):
         return sample

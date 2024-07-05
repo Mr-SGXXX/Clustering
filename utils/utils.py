@@ -35,8 +35,11 @@ def get_args():
     parser = argparse.ArgumentParser(description="Implementation of Clustering Methods, detailed setting is in the configuration file")
     parser.add_argument('-cp', '--config_path', default='./cfg/example.cfg', help="Configuration file path")
     parser.add_argument('-ss', '--split_symbol', default=',', help="Configuration file delimiter")
+    parser.add_argument('-d', "--device", default=None, help="Device to run the code")
     args = parser.parse_args()
     cfg = config.init_by_path(args.config_path, split_symbol=args.split_symbol)
+    if args.device is not None:
+        cfg.set("global", "device", args.device)
     return args, cfg
 
 def seed_init(seed:typing.Union[None, int]=None):

@@ -18,4 +18,4 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from .MLP import build_MLP_net
-from ..DEC.DEC_ClusteringLayer import ClusteringLayer
+from .DEC_ClusteringLayer import ClusteringLayer

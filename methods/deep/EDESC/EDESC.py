@@ -35,10 +35,10 @@ from datasetLoader import ClusteringDataset
 from metrics import Metrics, normalized_mutual_info_score as cal_nmi
 from utils import config
 
-from .EDESC.EDESC_AE import EDESC_AE
-from .EDESC.EDESC_loss import D_constraint1, D_constraint2
-from .utils.EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
-from .base import DeepMethod
+from .EDESC_AE import EDESC_AE
+from .EDESC_loss import D_constraint1, D_constraint2
+from .EDESC_utils import seperate, Initialization_D, refined_subspace_affinity
+from ..base import DeepMethod
 
 
 class EDESC(DeepMethod):
@@ -116,7 +116,7 @@ class EDESC(DeepMethod):
         Returns:
             z (torch.Tensor): Hidden layer representation of whole dataset.
         """
-        self.dataset.pretrain()
+        self.dataset.use_full_data()
         self.train()
         model = self.ae
         train_loader = DataLoader(
@@ -154,7 +154,7 @@ class EDESC(DeepMethod):
             metrics (Metrics): Metrics object for evaluation.
 
         """
-        self.dataset.clustering()
+        self.dataset.use_label_data()
         # self.ae.load_state_dict(torch.load(
         #     "weight/reuters.pkl", map_location=self.device))
         train_loader = DataLoader(

@@ -57,7 +57,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
         cfg.get("global", "figure_dir"), method, dataset, description)
     if not os.path.exists(figure_dir):
         os.makedirs(figure_dir)
-    figure_paths = []
+    figure_paths_dict = {}
     pretrain_tsne_figure_path = os.path.join(
         figure_dir, f"{method}_{dataset}_pretrain_tsne.png")
     pretrain_umap_figure_path = os.path.join(
@@ -82,7 +82,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
             logger.info("Generate Clustering Loss Chart")
             gen_loss_chart(losses_list, loss_names,
                            clustering_loss_figure_path)
-            figure_paths.append(clustering_loss_figure_path)
+            figure_paths_dict["clustering_loss_figure"] = clustering_loss_figure_path
         if len(rst_metrics.PretrainLoss) >= 1:
             losses_list = []
             loss_names = []
@@ -93,7 +93,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
             logger.info("Generate Pretrain Loss Chart")
             gen_pretrain_loss_chart(
                 losses_list, loss_names, pretrain_loss_figure_path)
-            figure_paths.append(pretrain_loss_figure_path)
+            figure_paths_dict["pretrain_loss_figure"] = pretrain_loss_figure_path
         if true_labels is not None:
             score_dict = {
                 'ACC': rst_metrics.ACC.val_list,
@@ -104,11 +104,10 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
             logger.info("Generate Clustering Score Chart")
             gen_clustering_chart_metrics_score(
                 rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
-            figure_paths.append(clustering_score_figure_path)
+            figure_paths_dict["clustering_score_figure"] = clustering_score_figure_path
         if len(rst_metrics.epoch_feature_dict) > 0:
             logger.info("Generate Clustering Process Visualization")
-            figure_paths += draw_epoch_tsne_umap(
-                rst_metrics, dataset, method, figure_dir, true_labels)
+            draw_epoch_tsne_umap(rst_metrics, dataset, method, figure_dir, true_labels)
 
     if features is not None:
         if type(features) == torch.Tensor:
@@ -118,8 +117,8 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                  clustering_tsne_figure_path)
         gen_umap(features, true_labels, pred_labels,
                  clustering_umap_figure_path)
-        figure_paths.append(clustering_tsne_figure_path)
-        figure_paths.append(clustering_umap_figure_path)
+        figure_paths_dict["clustering_tsne_figure"] = clustering_tsne_figure_path
+        figure_paths_dict["clustering_umap_figure"] = clustering_umap_figure_path
 
     if pretrain_features is not None:
         if type(pretrain_features) == torch.Tensor:
@@ -129,10 +128,10 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                  None, pretrain_tsne_figure_path)
         gen_umap(pretrain_features, true_labels,
                  None, pretrain_umap_figure_path)
-        figure_paths.append(pretrain_tsne_figure_path)
-        figure_paths.append(pretrain_umap_figure_path)
+        figure_paths_dict["pretrain_tsne_figure"] = pretrain_tsne_figure_path
+        figure_paths_dict["pretrain_umap_figure"] = pretrain_umap_figure_path
 
-    return figure_paths
+    return figure_paths_dict
 
 
 def gen_tsne(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndarray, path: str, classIdx2label: callable = None):
@@ -155,7 +154,7 @@ def gen_tsne(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndar
         plt.legend(loc='best')
     elif true_labels is not None and pred_labels is None:
         sns.scatterplot(data=df_tsne, hue='label1', x='Dim1', y='Dim2')
-        plt.title('Ground Truth Label TSNE')
+        plt.title('Pretrain Ground Truth Label TSNE')
         plt.legend(loc='best')
     elif true_labels is None and pred_labels is not None:
         sns.scatterplot(data=df_tsne, hue='label2', x='Dim1', y='Dim2')
@@ -221,7 +220,6 @@ def draw_epoch_tsne_umap(metrics: Metrics, dataset: str, method: str, dir_name: 
         gen_umap(features, y_true, y_pred, umap_figure_path)
         tsne_list.append(tsne_figure_path)
         umap_list.append(umap_figure_path)
-    path_list = tsne_list + umap_list
     tsne_gif_path = os.path.join(dir_name, f"{method}_{dataset}_tsne.gif")
     umap_gif_path = os.path.join(dir_name, f"{method}_{dataset}_umap.gif")
     if len(tsne_list) > 1:
@@ -229,9 +227,8 @@ def draw_epoch_tsne_umap(metrics: Metrics, dataset: str, method: str, dir_name: 
                                         for path in tsne_list], fps=1)
         imageio.mimsave(umap_gif_path, [imageio.imread(path)
                                         for path in umap_list], fps=1)
-        path_list.append(tsne_gif_path)
-        path_list.append(umap_gif_path)
-    return path_list
+        # path_list.append(tsne_gif_path)
+        # path_list.append(umap_gif_path)
 
 
 def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):

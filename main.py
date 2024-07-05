@@ -22,9 +22,10 @@ import os
 import time
 import warnings
 import pandas as pd
+import random
 
 
-from utils import email_reminder, get_logger, make_dir, get_args, save_rst, ExperimentRecorder
+from utils import email_reminder, get_logger, make_dir, get_args, save_rst, ExperimentRecorder, seed_init
 from figures import draw_charts
 from metrics import evaluate
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
@@ -44,7 +45,10 @@ def main():
         if cfg.get("global", "description") is not None
         else (cfg.get("global", "method_name") + "_" +
               cfg.get("global", "dataset"))
-    ) + f"_{int(start_time)}"
+    ) + f"_{int(start_time)}_{random.randint(0, 10000)}"
+    seed = cfg.get("global", "seed")
+    if seed is not None:
+        seed_init(seed)
     print(f"Experiment: {description} is running...")
     logger, log_path = get_logger(
         cfg.get("global", "log_dir"), description, std_out=cfg.get("global", "log_std_output"))
@@ -174,7 +178,6 @@ def main():
         )
         print(f"Experiment: {description} is over...")
     except Exception as e:
-        # raise e
         error_info = traceback.format_exc()
         logger.info(
             f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
@@ -190,6 +193,7 @@ def main():
                 (log_path, ),
             )
         print(f"Experiment: {description} failed...")
+        raise e
 
 
 if __name__ == "__main__":

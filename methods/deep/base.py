@@ -52,14 +52,14 @@ class DeepMethod(nn.Module):
         """
         return x
 
-
     def pretrain(self):
         """
         This method is used to pretrain the model.
 
         It should return the hidden layer representation of the whole dataset.
 
-        There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
+        In order to draw the pretraining loss figure, the `total_loss` should be passed to the `update_pretrain_loss` method of the metrics.
+        Any other loss you want to draw should also be passed to the `update_pretrain_loss` method of the metrics with the format `update_pretrain_loss(..., loss_name=loss_value)`.
 
         For those methods that do not need pretraining, just return None.
         """
@@ -71,7 +71,8 @@ class DeepMethod(nn.Module):
 
         It should return the predicted labels, features.
 
-        There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.
+        In order to draw the clustering loss figure, the `total_loss` should be passed to the `update_loss` method of the metrics.
+        Any other loss you want to draw should also be passed to the `update_loss` method of the metrics with the format `update_loss(..., loss_name=loss_value)`.
        
         If ground truth is available, the `y_true` should be passed to the `update` method of the metrics.
         """

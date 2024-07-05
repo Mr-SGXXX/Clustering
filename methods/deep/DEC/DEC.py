@@ -81,7 +81,7 @@ class DEC(DeepMethod):
         return latent, assign
 
     def pretrain(self):
-        self.dataset.pretrain()
+        self.dataset.use_full_data()
         pretrain_path = self.cfg.get("DEC", "pretrain_file")
         if pretrain_path is not None:
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
@@ -170,7 +170,7 @@ class DEC(DeepMethod):
         return self.encode_dataset()[0]
 
     def train_model(self):
-        self.dataset.clustering()
+        self.dataset.use_label_data()
         self.ae.defreeze()
         es_count = 0
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum)
