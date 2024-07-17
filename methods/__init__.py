@@ -27,7 +27,22 @@ METHODS_INPUT_TYPES = {
     **CLASSICAL_METHODS_INPUT_TYPES
 }
 
-if os.path.exists("methods/my_test/__init__.py"):
+
+if os.path.exists("methods/demo/__init__.py"):
+    """
+        If you want to add your own methods, you can create the file methods/demo/__init__.py and add your methods in it referring to the following format:
+        MY_METHODS = {
+            "Your Method Name" : your_method_class
+        }
+
+        MY_METHODS_TYPE_FLAG = {
+            "Your Method Name" : "deep" or "classical"
+        }
+
+        MY_METHODS_INPUT_TYPES = {
+            “Your Method Name” : ["input_type1 (seq)", "input_type2 (img)", ...]
+        }
+    """
     from .demo import *
     for method in MY_METHODS:
         if MY_METHODS_TYPE_FLAG[method] == "deep":

@@ -61,6 +61,9 @@ def main():
     else:
         reminder = None
     experiment_recorder = ExperimentRecorder(cfg)
+    
+    
+    # Start the experiment
     experiment_recorder.experiment_start(description, start_time)
     try:
         # Select the method

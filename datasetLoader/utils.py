@@ -21,6 +21,8 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import typing
+import requests
+import tqdm
 
 from datasetLoader import ClusteringDataset
 
@@ -55,3 +57,20 @@ def reassign_dataset(dataset: ClusteringDataset, new_label:typing.Union[torch.Te
     A function that reassigns the label of a ClusteringDataset
     """
     return ReassignDataset(dataset, new_label)
+
+def download_dataset(url:str, save_path:str):
+    """
+    A function that downloads a dataset from a URL and saves it to a file
+
+    Args:
+        url (str): The URL of the dataset
+        save_path (str): The path to save the dataset
+    """
+    with requests.get(url, stream=True) as r:
+        total_size = int(r.headers.get('content-length', 0))
+        with open(save_path, 'wb') as f:
+            with tqdm.tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+                for data in r.iter_content(chunk_size=1024):
+                    f.write(data)
+                    pbar.update(len(data))
+    return save_path
