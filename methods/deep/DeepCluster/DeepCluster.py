@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# This method reproduction refers to the following repository:
-# https://github.com/facebookresearch/deepcluster
 from logging import Logger
 import torch
 import torch.nn as nn
@@ -39,6 +37,8 @@ from .DeepCluster_VGG import vgg16
 from .DeepCluster_utils import Kmeans, PIC, UnifLabelSampler, arrange_clustering
 from ..base import DeepMethod
 
+# This method reproduction refers to the following repository:
+# https://github.com/facebookresearch/deepcluster
 
 class DeepCluster(DeepMethod):
     def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):

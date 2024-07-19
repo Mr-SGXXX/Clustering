@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# this file is modified from https://github.com/facebookresearch/deepcluster/blob/main/models/alexnet.py
 import math
 
 import numpy as np
 import torch
 import torch.nn as nn
+
+# this file is modified from https://github.com/facebookresearch/deepcluster/blob/main/models/alexnet.py
  
 # (number of filters, kernel size, stride, pad)
 CFG = {

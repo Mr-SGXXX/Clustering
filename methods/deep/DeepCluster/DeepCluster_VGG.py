@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# this file is modified from https://github.com/facebookresearch/deepcluster/blob/main/models/vgg16.py
 import torch
 import torch.nn as nn
 import math
 from random import random as rd
 
+# this file is modified from https://github.com/facebookresearch/deepcluster/blob/main/models/vgg16.py
 
 class VGG(nn.Module):
 

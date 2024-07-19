@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +18,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import torch
+import numpy as np
+import os
+import h5py
+import typing
+import scipy as sp
+import scanpy as sc
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.decomposition import TruncatedSVD
+
+from ..base import ClusteringDataset, Graph
+from ..utils import download_dataset
+from utils import config
+
 # This dataset loader is for loading scRNA data in h5 format with X and Y data, where X is the feature matrix and Y is the label matrix.
 # By default, if the data is not found, it will attempt to download the data from the dataset_url dictionary.
 # The dataset is then normalized and imputed using SVD imputation if the configuration is set to True.
@@ -26,34 +41,6 @@
 # The online dataset is available at: https://zenodo.org/records/8175767 collected by the authors of the scMAE paper:
 # Fang Z, Zheng R, Li M. scMAE: a masked autoencoder for single-cell RNA-seq clustering[J]. Bioinformatics, 2024, 40(1): btae020.
 # Thanks to the authors for their work.
-
-import torch
-import numpy as np
-import os
-import h5py
-import torch_geometric as pyg
-from torch_geometric.data import Data as GraphData
-from torch_geometric.data import Dataset as GraphDataset
-from torch_geometric.nn import knn_graph, radius_graph
-from torch_geometric.utils import dense_to_sparse
-import typing
-import scipy as sp
-import scanpy as sc
-
-from sklearn.preprocessing import LabelEncoder
-from sklearn.decomposition import TruncatedSVD
-
-from ..base import ClusteringDataset
-from ..utils import download_dataset
-from utils import config
-
-    
-default_svd_params = {
-    "n_components": 128,
-    "random_state": 42,
-    "n_oversamples": 20,
-    "n_iter": 7,
-}
 
 dataset_url = {
     "Bach": "https://zenodo.org/records/8175767/files/Bach.h5?download=1",
@@ -162,6 +149,13 @@ dataset_url = {
     # Platform: 10x (not for sure)
 }
 
+default_svd_params = {
+    "n_components": 128,
+    "random_state": 42,
+    "n_oversamples": 20,
+    "n_iter": 7,
+}
+
 class XYh5_scRNA(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
@@ -171,84 +165,24 @@ class XYh5_scRNA(ClusteringDataset):
         if 'seq' not in self.needed_data_types:
             raise ValueError(f"No available data type for XYh5_scRNA in {self.needed_data_types}")
         self.data_type = 'seq'
-        data_name = self.cfg.get("XYh5_scRNA", "data_name")
-        data_dir = os.path.join(self.cfg.get("global", "dataset_dir"), "XYh5_scRNA")
-        data_path = os.path.join(data_dir, f"{data_name}.h5")
+        self.data_name = self.cfg.get("XYh5_scRNA", "data_name")
+        self.data_dir = os.path.join(self.cfg.get("global", "dataset_dir"), "XYh5_scRNA")
+        data_path = os.path.join(self.data_dir, f"{self.data_name}.h5")
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
         if not os.path.exists(data_path):
-            if data_name in dataset_url:
-                download_dataset(dataset_url[data_name], data_path)
+            if self.data_name in dataset_url:
+                download_dataset(dataset_url[self.data_name], data_path)
             else:
-                raise FileNotFoundError(f"File {data_path} not found and no download URL provided for {data_name}")
+                raise FileNotFoundError(f"File {data_path} not found and no download URL provided for {self.data_name}")
         X, Y = load_scRNA_h5data(data_path, self.cfg)
         return X, Y
     
     def data_preprocess(self, sample):
         return sample
     
-    def load_as_graph(self, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]], **kwargs):
-        return XYh5_scRNA_graph(self.cfg, self._XYh5_scRNA_graph_XY_loader, weight_type, transform=None, **kwargs)
-
-    def _XYh5_scRNA_graph_XY_loader(self):
+    def load_XY(self):
         return self.label_data, self.label
-
-
-class XYh5_scRNA_graph(GraphDataset):
-    def __init__(self, cfg, XY_loader, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]], transform=None, **kwargs):
-        root = cfg.get("global", "dataset_dir")
-        self.data_name = cfg.get("XYh5_scRNA", "data_name")
-        root = os.path.join(root, "XYh5_scRNA", self.data_name)
-        self.weight_type = weight_type
-        self.kwargs = kwargs
-        if not os.path.exists(root):
-            os.makedirs(root)
-        super(XYh5_scRNA_graph, self).__init__(root, transform, pre_transform=XY_loader)
-        self.data = torch.load(self.processed_paths[0])    
-
-    def download(self):
-        raise RuntimeError("Dataset not found")
-    
-    def process(self):
-        if self.pre_transform is not None:
-            X, Y = self.pre_transform()
-            X, Y = torch.Tensor(X), torch.Tensor(Y)
-        else:
-            raise ValueError("Graph XY load failed")
-        if self.transform is not None:
-            X = self.transform(X)
-        edge_index, edge_weight = self.adj_construct(X)
-        data = GraphData(x=X, edge_index=edge_index, edge_weight=edge_weight, y=Y)
-        torch.save(data, self.processed_paths[0])
-    
-    @property
-    def processed_file_names(self):
-        weight_name = self.weight_type if type(self.weight_type) is str else self.weight_type.__name__
-        return [f"{self.data_name}XY_{weight_name}_Graph.pt"]
-    
-    def adj_construct(self, X):
-        if type(self.weight_type) == typing.Callable:
-            adj_mat = self.weight_type(X, **self.kwargs)
-        elif type(self.weight_type) is str:
-            if self.weight_type == "cosine":
-                X_norm = X / torch.norm(X, dim=1, keepdim=True)
-                adj_mat = torch.mm(X_norm, X_norm.T)
-                edge_index, edge_weight = dense_to_sparse(adj_mat)
-            elif self.weight_type == "KNN":
-                k = self.kwargs.get("k", None)
-                assert k is not None, "KNN weight type requires k value to be set."
-                edge_index = knn_graph(torch.Tensor(X), k, loop=True, **self.kwargs)
-                edge_weight = None
-            elif self.weight_type == "Radius":
-                r = self.kwargs.get("r", None)
-                assert r is not None, "Radius weight type requires r value to be set."
-                edge_index = radius_graph(torch.Tensor(X), r, loop=True, **self.kwargs)
-                edge_weight = None
-            else:
-                raise ValueError(f"Unknown weight type {self.weight_type}! Input a sparse matrix generation function or predefined weight type string!")
-        else:
-            raise ValueError(f"Unknown weight type {self.weight_type}! Input a sparse matrix generation function or predefined weight type string!")
-                
-        return edge_index, edge_weight
-    
         
 class IterativeSVDImputator(object):
     def __init__(self, svd_params=default_svd_params, iters=2):

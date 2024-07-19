@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,13 @@ Each method should consist of `__init__(dataset, description, logger, cfg)`, `fi
 fit() should return the predicted labels and the features clustered.
 the args must be the same as the base class in `base.py`.
 """
-
 CLASSICAL_METHODS = {
     # A simple implement for K-means
     "KMeans": KMeans,
     # A simple implement for Spectral Clustering
     "SpectralClustering": SpectralClustering
 }
+
 
 """
 CLASSICAL_METHODS_INPUT_TYPES: A dict of classical clustering methods' input types.

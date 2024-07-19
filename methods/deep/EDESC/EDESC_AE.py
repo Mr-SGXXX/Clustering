@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,11 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# This file is modified from https://github.com/JinyuCai95/EDESC-pytorch/blob/master/AutoEncoder.py
 import torch.nn as nn
 import torch.nn.functional as F
 
 from ..layers import build_MLP_net
+
+# This file is modified from https://github.com/JinyuCai95/EDESC-pytorch/blob/master/AutoEncoder.py
 
 # class EDESC_AE(nn.Module):
 #     def __init__(self, n_input, encoder_dims, decoder_dims, n_z):

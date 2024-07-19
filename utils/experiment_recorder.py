@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,11 @@ from pyerm import Experiment
 from .config import config
 
 class ExperimentRecorder:
-    def __init__(self, cfg:config, task_name:str="Clustering", db_path:str="./result/experiments.db"):
-        self.experiment = Experiment(db_path)
+    def __init__(self, cfg:config, task_name:str="Clustering"):
+        self.db_path = cfg['global']['db_path']
+        if self.db_path is None:
+            return
+        self.experiment = Experiment(self.db_path)
         self.experiment.task_init(task_name)
         dataset_name = cfg['global']['dataset']
         dataset_params = cfg[f'{dataset_name}']
@@ -33,15 +36,23 @@ class ExperimentRecorder:
         self.experiment.method_init(method_name, method_params)
     
     def experiment_start(self, description, start_time):
+        if self.db_path is None:
+            return
         self.experiment.experiment_start(description, start_time)
 
     def experiment_over(self, rst_dict, images, end_time, useful_time_cost):
+        if self.db_path is None:
+            return
         self.experiment.experiment_over(rst_dict, images, end_time, useful_time_cost)
     
     def experiment_failed(self, exception:Exception, end_time=None):
+        if self.db_path is None:
+            return
         self.experiment.experiment_failed(str(exception), end_time)
 
     def detail_update(self, detail_dict):
+        if self.db_path is None:
+            return
         self.experiment.detail_update(detail_dict)
 
     

@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,10 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# This method reproduction refers to the following repository:
-# https://github.com/piiswrong/dec/tree/master
-# https://github.com/XifengGuo/IDEC
-# https://github.com/vlukiyanov/pt-dec
 from logging import Logger
 import torch
 import torch.nn as nn
@@ -41,6 +37,10 @@ from .DEC_AE import DEC_AE
 from ..layers import ClusteringLayer
 from .DEC_utils import target_distribution
 
+# This method reproduction refers to the following repository:
+# https://github.com/piiswrong/dec/tree/master
+# https://github.com/XifengGuo/IDEC
+# https://github.com/vlukiyanov/pt-dec
 
 class DEC(DeepMethod):
     def __init__(self, dataset:ClusteringDataset, description:str, logger: Logger, cfg: config):

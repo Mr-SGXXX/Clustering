@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Yuxuan Shao
+# Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# this file is modified from https://github.com/Yunfan-Li/Contrastive-Clustering/blob/main/modules/network.py
-#                       and https://github.com/Yunfan-Li/Contrastive-Clustering/blob/main/modules/resnet.py
-
 import torch.nn as nn
 import torch
 from torchvision.models.resnet import Bottleneck, BasicBlock, conv1x1
 from torch.nn.functional import normalize
+
+# this file is modified from https://github.com/Yunfan-Li/Contrastive-Clustering/blob/main/modules/network.py
+#                       and https://github.com/Yunfan-Li/Contrastive-Clustering/blob/main/modules/resnet.py
 
 
 class Network(nn.Module):

@@ -4,7 +4,7 @@ figures/*
 result/*
 weight/*
 data/*
-methods/demo
+methods/demo/*
 ./*.xls
 
 cfg/email.cfg
