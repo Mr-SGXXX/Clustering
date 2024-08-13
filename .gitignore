@@ -5,6 +5,7 @@ result/*
 weight/*
 data/*
 ./*.xls
+others
 
 cfg/email.cfg
 .vscode/launch.json
