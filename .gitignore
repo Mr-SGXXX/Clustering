@@ -4,7 +4,6 @@ figures/*
 result/*
 weight/*
 data/*
-methods/demo/*
 ./*.xls
 
 cfg/email.cfg
@@ -12,7 +11,6 @@ cfg/email.cfg
 
 result/experiments.db
 
-!methods/demo/__init__.py
 
 !data/Reuters10K
 !data/ImageNet-10
