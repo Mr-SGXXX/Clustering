@@ -29,7 +29,6 @@ from utils import config
 class STL10(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = 'STL10'
         
     def label_data_init(self):
         data_dir = self.cfg.get("global", "dataset_dir")
@@ -38,9 +37,11 @@ class STL10(ClusteringDataset):
         data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
+            self.name += '_img'
         elif 'seq' in self.needed_data_types:
             if self.cfg.get("STL10", "img2seq_method") == 'flatten':
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
+                self.name += '_seq_flatten'
             elif self.cfg.get("STL10", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'stl10_binary')
                 if os.path.exists(os.path.join(data_dir, 'STL10_label_resnet50.npy')):
@@ -48,6 +49,7 @@ class STL10(ClusteringDataset):
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'STL10_label_resnet50.npy'), data)
+                self.name += '_seq_resnet50'
             elif self.cfg.get("STL10", "img2seq_method") == 'hog_color':
                 if os.path.exists(os.path.join(data_dir, 'STL10_label_hog_color.npy')):
                     data = np.load(os.path.join(data_dir, 'STL10_label_hog_color.npy'))
@@ -58,6 +60,7 @@ class STL10(ClusteringDataset):
                     ]
                     data = np.array(features).astype(np.float32)
                     np.save(os.path.join(data_dir, 'STL10_hog_color.npy'), data)
+                self.name += '_seq_hog_color'
             else:
                 raise ValueError(f"`{self.cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
             self.data_type = 'seq'

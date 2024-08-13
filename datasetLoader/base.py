@@ -22,6 +22,7 @@ from torch.utils.data import Dataset
 import torch_geometric as pyg
 from torch_geometric.data import Data as GraphData
 from torch_geometric.data import Dataset as GraphDataset
+from torch_geometric.data.data import BaseData
 from torch_geometric.nn import knn_graph, radius_graph
 from torch_geometric.utils import dense_to_sparse
 from torch_sparse import SparseTensor
@@ -46,7 +47,8 @@ class ClusteringDataset(Dataset):
         needed_data_types (list): A list of data types that are needed.
 
     Attributes:
-        cfg (config): Config class.
+        cfg (config): Config class implemented in `utils/config.py`.
+        name (str): The name of the dataset, default to the class name.
         needed_data_types (list): A list of data types that the method need.
         label_data (torch.Tensor or np.ndarray): Labeled data. Need to be set in `label_data_init`.
         label (torch.Tensor or np.ndarray): Labels of the labeled data. Need to be set in `label_data_init`.
@@ -54,7 +56,7 @@ class ClusteringDataset(Dataset):
         label_length (int): Length of the labeled data. Automatically calculated when used.
         unlabel_length (int): Length of the unlabeled data. Automatically calculated when used.
         num_classes (int): Number of classes in the dataset. Automatically calculated when used.
-
+        
     Methods:
         label_data_init() -> Union[torch.Tensor, np.ndarray, list of path], Union[torch.Tensor, np.ndarray, list of label]: 
             Used to initialize the `label_data` and `label` of the dataset.
@@ -70,9 +72,10 @@ class ClusteringDataset(Dataset):
             Use the labeled data, usually for clustering.
         load_graph_XY -> Tuple[torch.Tensor, torch.Tensor]:
             Generate the X and Y data of the graph, return the X and Y data, (torch.Tensor, torch.Tensor).
-            
-        load_as_graph -> GraphDataset:
+            Need to be rewritten if you want to load the data as a graph but not use the default data and label.
+        to_graph -> torch_geometric.data.Dataset:
             Load the data as a graph (KNN default), return the graph data, `torch_geometric.data.Dataset`.
+
     """
 
     def __init__(self, cfg: config, needed_data_types: list):
@@ -80,6 +83,7 @@ class ClusteringDataset(Dataset):
         Initialize the dataset.
         """
         self.cfg = cfg
+        self.name = self.__class__.__name__
         self.needed_data_types = needed_data_types
         self._full_data = True
         self._label_data = None
@@ -89,6 +93,8 @@ class ClusteringDataset(Dataset):
         self._unlabel_len = None
         self._num_classes = None
         self._input_dim = None
+        self._graph = None
+        assert self.label_data is not None or self.unlabel_data is not None, "No available data"
 
     def __len__(self) -> int:
         """
@@ -121,18 +127,18 @@ class ClusteringDataset(Dataset):
         else:
             return torch.from_numpy(np.array(data)), None, torch.from_numpy(np.array(index))
 
-
     def data_preprocess(self, sample) -> typing.Union[torch.Tensor, np.ndarray]:
         """
         preprocess a single sample, return the preprocessed data, torch.Tensor or np.ndarray
 
         When you need to preprocess the data of single sample (the data is not a Tensor when loaded in `data_init`), you need to overwrite this method
         """
+        assert type(sample) is torch.Tensor or type(sample) is np.ndarray, "The sample should be torch.Tensor or np.ndarray, consider to overwrite the data_preprocess method to preprocess the data"
         return sample
 
     def use_full_data(self):
         """
-        use the full dataset, usually for pretraining,
+        use the full dataset (both labeled and unlabeled data), usually for pretraining,
         
         not suggested to change the default implementation
         """
@@ -151,7 +157,7 @@ class ClusteringDataset(Dataset):
             self._full_data = False
 
 
-    def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray], typing.Union[torch.Tensor, np.ndarray]]:
+    def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray, None], typing.Union[torch.Tensor, np.ndarray, None]]:
         """
         initialize the `data` of the dataset as `np.ndarray` or `torch.Tensor`, and the `label` of the dataset as `np.ndarray` or `torch.Tensor`.
 
@@ -159,15 +165,30 @@ class ClusteringDataset(Dataset):
         """
         return None, None
 
-    def unlabeled_data_init(self):
+    def unlabeled_data_init(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
         """
         initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return the `np.ndarray`.
 
         if the dataset loads each data in the __getitem__ method, the `unlabeled_data_init` is suggested to be implemented
         """
         return None
-    
-    def load_as_graph(self, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
+
+    def load_graph_XY(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray], typing.Union[torch.Tensor, np.ndarray, None]]:
+        """
+        an optional method to generate the X and Y data of the graph,
+        return the X and Y data, (torch.Tensor, torch.Tensor)
+        
+        Need to be rewritten if you want to load the data as a graph but not use the default data and label.
+        """
+        if self.label_data is not None and self.unlabel_data is not None:
+            return torch.cat([self.label_data, self.unlabel_data], dim=0), torch.cat(self.label, -torch.ones(self.unlabel_length, dtype=torch.long))
+        elif self.label_data is not None:
+            return self.label_data, self.label
+        else:
+            return self.unlabel_data, None
+        # raise NotImplementedError("The load_graph_XY method should be implemented if you want to load the data as a graph")
+
+    def to_graph(self, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
         """
         method to load the data as a graph, return the graph data, torch_geometric.data.Dataset
         
@@ -178,14 +199,9 @@ class ClusteringDataset(Dataset):
                 the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
             **kwargs: the parameters of the weight type function
         """
-        return Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs)
-
-    def load_graph_XY(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray], typing.Union[torch.Tensor, np.ndarray, None]]:
-        """
-        an optional method to generate the X and Y data of the graph,
-        return the X and Y data, (torch.Tensor, torch.Tensor)
-        """
-        raise NotImplementedError("The load_graph_XY method should be implemented if you want to load the data as a graph")
+        if self._graph is None:
+            self._graph = Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs)
+        return self._graph
 
     @property
     def label_length(self):
@@ -225,9 +241,9 @@ class ClusteringDataset(Dataset):
                 self._label_len = len(self._label_data)
                 if self._input_dim is None:
                     if type(self._label_data) is np.ndarray or type(self._label_data) is torch.Tensor:
-                        self._input_dim = self._label_data.shape[1:]
+                        self._input_dim = list(self._label_data.shape[1:])
                     else:
-                        self._input_dim = self.data_preprocess(self._label_data[0]).shape
+                        self._input_dim = list(self.data_preprocess(self._label_data[0]).shape)
                     if len(self._input_dim) == 1:
                         self._input_dim = self._input_dim[0]
                 else:
@@ -249,6 +265,7 @@ class ClusteringDataset(Dataset):
     @label.setter
     def label(self, new_label):
         assert len(new_label) == len(self._label_data), "The length of the label should be the same as the data"
+        self._num_classes = None
         self._label = new_label
 
     @property
@@ -268,9 +285,9 @@ class ClusteringDataset(Dataset):
                 self._unlabel_len = len(self._unlabel_data)
                 if self._input_dim is None:
                     if type(self._unlabel_data) is np.ndarray or type(self._unlabel_data) is torch.Tensor:
-                        self._input_dim = self._unlabel_data.shape[1:]
+                        self._input_dim = list(self._unlabel_data.shape[1:])
                     else:
-                        self._input_dim = self._unlabel_data.shape[1:]
+                        self._input_dim = list(self.data_preprocess(self._unlabel_data[0]).shape)
                     if len(self._input_dim) == 1:
                         self._input_dim = self._input_dim[0]
                 else:
@@ -309,18 +326,21 @@ class Graph(GraphDataset):
             the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
         transform (Callable): the transform function of the data before calculating graph adjacency matrix, default to None
         **kwargs: the parameters of the weight type function
+        
+    Attributes:
+
     """
     def __init__(self, XY_loader, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]= "KNN", transform:typing.Callable=None, **kwargs):
-        self.data_name = data_name if data_name is None else os.path.basename(data_dir).split()[0]
+        self.data_name = data_name if data_name is not None else os.path.basename(data_dir).split()[0]
         self.weight_type = weight_type
         self.kwargs = kwargs
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
         super(Graph, self).__init__(data_dir, transform, pre_transform=XY_loader)
-        self.data = torch.load(self.processed_paths[0])    
+        self.data = torch.load(self.processed_paths[0]) # contains only one graph data constructed by the whole dataset   
 
     def download(self):
-        raise RuntimeError("Dataset not found")
+        raise RuntimeError("Dataset not found. Please put the data file in the correct directory first.")
     
     def process(self):
         if self.pre_transform is not None:
@@ -329,18 +349,18 @@ class Graph(GraphDataset):
             if Y is not None:
                 Y = torch.Tensor(Y)
         else:
-            raise ValueError("Graph XY load failed")
+            raise ValueError("Graph XY load failed.")
         if self.transform is not None:
             X = self.transform(X)
         edge_index, edge_weight = self.adj_construct(X)
-        adj_t = SparseTensor.from_edge_index(edge_index, edge_weight=edge_weight, sparse_sizes=(X.size(0), X.size(0)))
+        adj_t = SparseTensor.from_edge_index(edge_index, edge_weight, sparse_sizes=(X.size(0), X.size(0)))
         data = GraphData(x=X, edge_index=adj_t, y=Y)
         torch.save(data, self.processed_paths[0])
     
     @property
     def processed_file_names(self):
         weight_name = self.weight_type if type(self.weight_type) is str else self.weight_type.__name__
-        return [f"{self.data_name}XY_{weight_name}_Graph.pt"]
+        return [f"{self.data_name}_{weight_name}_Graph.pt"]
     
     def adj_construct(self, X):
         if type(self.weight_type) == typing.Callable:

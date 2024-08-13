@@ -19,6 +19,7 @@
 # SOFTWARE.
 import configparser
 import typing
+import os
 
 
 class CaseSensitiveConfigParser(configparser.ConfigParser):
@@ -53,6 +54,8 @@ class config:
         :param config_path: str, configuration file path
         :param split_symbol: str, delimiter of the configuration file
         """
+        if not os.path.exists(config_path):
+            return None
         cfg = CaseSensitiveConfigParser()
         cfg.read(config_path)
         return self(cfg, split_symbol)
@@ -133,3 +136,9 @@ class config:
                         rst_str += f'{option}:\t{value}\n'
                 rst_str += "\n"
         return rst_str
+    
+    def __add__(self, other):
+        for section in other.cfg.sections():
+            for option in other.cfg.options(section):
+                self.set(section, option, other.get(section, option))
+        return self

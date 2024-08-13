@@ -29,7 +29,6 @@ from utils import config
 class MNIST(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = 'MNIST'
     
     def label_data_init(self):
         data_dir = self.cfg.get("global", "dataset_dir")
@@ -39,9 +38,11 @@ class MNIST(ClusteringDataset):
         data = data.reshape((data.shape[0], 1, data.shape[1], data.shape[2]))
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
+            self.name += '_img'
         elif 'seq' in self.needed_data_types:
             if self.cfg.get("MNIST", "img2seq_method") == 'flatten':
-                data = data.reshape(data.shape[0], -1).astype(np.float32) * 0.02
+                data = data.reshape(data.shape[0], -1).astype(np.float32) / 255 # Normalize to [0, 1]
+                self.name += '_seq_flatten'
             elif self.cfg.get("MNIST", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'MNIST')
                 if os.path.exists(os.path.join(data_dir, 'MNIST_resnet50.npy')):
@@ -49,6 +50,7 @@ class MNIST(ClusteringDataset):
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'MNIST_resnet50.npy'), data)
+                self.name += '_seq_resnet50'
             else:
                 raise ValueError(f"`{self.cfg.get('MNIST', 'img2seq_method')}` is not an available img2seq_method for MNIST")
             self.data_type = 'seq'

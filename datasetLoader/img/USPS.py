@@ -29,7 +29,6 @@ from utils import config
 class USPS(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = 'USPS'
     
     def label_data_init(self):
         data_dir = self.cfg.get("global", "dataset_dir")
@@ -39,9 +38,11 @@ class USPS(ClusteringDataset):
         data = data.transpose((0, 3, 1, 2))
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
+            self.name += '_img'
         elif 'seq' in self.needed_data_types:
             if self.cfg.get("USPS", "img2seq_method") == 'flatten':
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
+                self.name += '_seq_flatten'
             elif self.cfg.get("USPS", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'usps')
                 if os.path.exists(os.path.join(data_dir, 'USPS_resnet50.npy')):
@@ -49,13 +50,15 @@ class USPS(ClusteringDataset):
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'USPS_resnet50.npy'), data)
+                self.name += '_seq_resnet50'
             else:
                 raise ValueError(f"`{self.cfg.get('USPS', 'img2seq_method')}` is not an available img2seq_method for USPS")
             self.data_type = 'seq'
         else:
             raise ValueError(f"No available data type for USPS in {self.needed_data_types}")
-        self.label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
-        self.label = self.label.reshape((self.label.size,))
+        label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
+        label = label.reshape((self.label.size,))
+        return data, label
     
     def data_preprocess(self, sample):
         return sample

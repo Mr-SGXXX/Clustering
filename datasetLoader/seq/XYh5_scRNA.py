@@ -36,7 +36,7 @@ from utils import config
 # This dataset loader is for loading scRNA data in h5 format with X and Y data, where X is the feature matrix and Y is the label matrix.
 # By default, if the data is not found, it will attempt to download the data from the dataset_url dictionary.
 # The dataset is then normalized and imputed using SVD imputation if the configuration is set to True.
-# If the graph data is needed, the data can be loaded as a graph using the load_as_graph method.
+# If the graph data is needed, the data can be loaded as a graph using the to_graph method.
 
 # The online dataset is available at: https://zenodo.org/records/8175767 collected by the authors of the scMAE paper:
 # Fang Z, Zheng R, Li M. scMAE: a masked autoencoder for single-cell RNA-seq clustering[J]. Bioinformatics, 2024, 40(1): btae020.
@@ -159,13 +159,13 @@ default_svd_params = {
 class XYh5_scRNA(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = None
 
     def label_data_init(self):
         if 'seq' not in self.needed_data_types:
             raise ValueError(f"No available data type for XYh5_scRNA in {self.needed_data_types}")
         self.data_type = 'seq'
         self.data_name = self.cfg.get("XYh5_scRNA", "data_name")
+        self.name = self.name + f"_{self.data_name}"
         self.data_dir = os.path.join(self.cfg.get("global", "dataset_dir"), "XYh5_scRNA")
         data_path = os.path.join(self.data_dir, f"{self.data_name}.h5")
         if not os.path.exists(self.data_dir):
@@ -180,9 +180,6 @@ class XYh5_scRNA(ClusteringDataset):
     
     def data_preprocess(self, sample):
         return sample
-    
-    def load_XY(self):
-        return self.label_data, self.label
         
 class IterativeSVDImputator(object):
     def __init__(self, svd_params=default_svd_params, iters=2):

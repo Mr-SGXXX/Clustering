@@ -56,8 +56,8 @@ class DEC(DeepMethod):
         self.train_max_epoch = cfg.get("DEC", "train_max_epoch")
         self.tol = cfg.get("DEC", "tol")
 
-        self.ae = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
-        self.clustering_layer = ClusteringLayer(self.n_clusters, self.hidden_dim, self.alpha).to(self.device)
+        self.ae:DEC_AE = DEC_AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
+        self.clustering_layer:ClusteringLayer = ClusteringLayer(self.n_clusters, self.hidden_dim, self.alpha).to(self.device)
     
     def forward(self, x):
         x_bar, z = self.ae(x)

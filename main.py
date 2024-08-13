@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore")
 
 def main():
     # initialize the configuration
-    _, cfg = get_args()
+    cfg = get_args()
     make_dir(cfg)
     start_time = time.time()
     description = (

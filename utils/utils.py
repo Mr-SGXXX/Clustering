@@ -40,7 +40,16 @@ def get_args():
     cfg = config.init_by_path(args.config_path, split_symbol=args.split_symbol)
     if args.device is not None:
         cfg.set("global", "device", args.device)
-    return args, cfg
+    if cfg.get("global", "method_name") not in cfg.sections():
+        for method_type in ["deep", "classical", "demo"]:
+            extra_method_cfg = config.init_by_path(f"methods/{method_type}/{cfg.get('global', 'method_name')}/{cfg.get('global', 'method_name')}.cfg", split_symbol=args.split_symbol)
+            if extra_method_cfg is not None:
+                break
+        if extra_method_cfg is not None:
+            cfg += extra_method_cfg
+        else:
+            raise ValueError(f"Method {cfg.get('global', 'method_name')} config section does not exist. Please check the configuration file.")
+    return cfg
 
 def seed_init(seed:typing.Union[None, int]=None):
     """

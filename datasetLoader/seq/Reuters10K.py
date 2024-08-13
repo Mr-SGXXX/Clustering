@@ -27,7 +27,6 @@ from utils import config
 class Reuters10K(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = 'Reuters10K'
 
     def label_data_init(self):
         if 'seq' not in self.needed_data_types:

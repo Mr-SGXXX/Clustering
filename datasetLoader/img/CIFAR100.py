@@ -31,7 +31,6 @@ from utils import config
 class CIFAR100(ClusteringDataset):
     def __init__(self, cfg: config, needed_data_types:list):
         super().__init__(cfg, needed_data_types)
-        self.name = 'CIFAR100'
     
     def label_data_init(self):
         data_dir = self.cfg.get("global", "dataset_dir")
@@ -45,9 +44,11 @@ class CIFAR100(ClusteringDataset):
         data = data.transpose((0, 3, 1, 2))
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
+            self.name += '_img'
         elif 'seq' in self.needed_data_types:
             if self.cfg.get("CIFAR100", "img2seq_method") == 'flatten':
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
+                self.name += '_seq_flatten'
             elif self.cfg.get("CIFAR100", "img2seq_method") == 'resnet50':
                 data_dir = os.path.join(data_dir, 'cifar-100-python')
                 if os.path.exists(os.path.join(data_dir, 'CIFAR100_resnet50.npy')):
@@ -55,6 +56,7 @@ class CIFAR100(ClusteringDataset):
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
                     np.save(os.path.join(data_dir, 'CIFAR100_resnet50.npy'), data)
+                self.name += '_seq_resnet50'
             else:
                 raise ValueError(f"`{self.cfg.get('CIFAR100', 'img2seq_method')}` is not an available img2seq_method for CIFAR100")
             self.data_type = 'seq'
