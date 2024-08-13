@@ -30,7 +30,7 @@ import os
 import imageio
 from logging import Logger
 
-from metrics import Metrics
+from utils.metrics import Metrics
 from utils import config
 
 

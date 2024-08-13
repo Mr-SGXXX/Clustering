@@ -21,7 +21,7 @@ import torch.nn as nn
 from logging import Logger
 
 from utils import config
-from metrics import Metrics
+from utils.metrics import Metrics
 from datasetLoader import ClusteringDataset
 
 

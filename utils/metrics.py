@@ -22,6 +22,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_
 from sklearn.metrics import silhouette_score as sklearn_silhouette_score
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from logging import Logger
+import typing
 import torch
 from tqdm import tqdm
 from time import time
@@ -53,6 +54,7 @@ class Metrics:
         self.PretrainLoss = {}
         self.Loss = {}
         self.epoch_feature_dict = {}
+        self.current_epoch = 0
         self.pretrain_time_cost = 0
         self.clustering_time_cost = 0
 
@@ -89,13 +91,14 @@ class Metrics:
             self.Loss[key].update(kwargs[key])
         self.clustering_time_cost += time() - start_time
 
-    def update(self, y_pred: np.ndarray, features: torch.Tensor = None, y_true: np.ndarray = None):
+    def update(self, y_pred: np.ndarray, features: typing.Union[torch.Tensor | np.ndarray | None] = None, y_true: typing.Union[np.ndarray | None] = None):
         """
         In each clustering epoch, update every metric in the metrics, which will be used for generating metrics figures.
         """
         start_time = time()
         assert features is None or type(
-            features) is np.ndarray or type(features) is torch.Tensor
+            features) is np.ndarray or type(features) is torch.Tensor, "features should be of type np.ndarray, torch.Tensor or None"
+        self.current_epoch += 1
         if features is not None:
             # when the size of dataset is too big, calculate the sc costs too much time.
             sc = clusters_scores(y_pred, features)
@@ -126,7 +129,8 @@ class Metrics:
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
 
     def __str__(self):
-        return "Clustering Scores:\n" + \
+        return f"Current Total Epoch Number: {self.current_epoch}" + \
+            "Clustering Scores:\n" + \
             f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
             f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \
             f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" + \
@@ -221,7 +225,9 @@ def clusters_scores(y_pred, features):
     if len(set(y_pred)) == 1:
         sc = -1.0
     else:
-        sc = sklearn_silhouette_score(features.detach().cpu().numpy(), y_pred)
+        if isinstance(features, torch.Tensor):
+            features = features.detach().cpu().numpy()
+        sc = sklearn_silhouette_score(features, y_pred)
         # sc = silhouette_score(features.detach(), y_pred)
     return sc
 

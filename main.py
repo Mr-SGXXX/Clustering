@@ -26,8 +26,8 @@ import random
 
 
 from utils import email_reminder, get_logger, make_dir, get_args, save_rst, ExperimentRecorder, seed_init
-from figures import draw_charts
-from metrics import evaluate
+from utils.figures import draw_charts
+from utils.metrics import evaluate
 from methods import CLASSICAL_METHODS, DEEP_METHODS, METHODS_INPUT_TYPES
 from datasetLoader import DATASETS
 from methods import *

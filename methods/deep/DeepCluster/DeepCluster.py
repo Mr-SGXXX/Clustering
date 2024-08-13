@@ -29,7 +29,7 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset, reassign_dataset
-from metrics import normalized_mutual_info_score as cal_nmi
+from utils.metrics import normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from .DeepCluster_AlexNet import alexnet

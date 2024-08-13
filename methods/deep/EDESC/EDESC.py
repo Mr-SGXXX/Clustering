@@ -30,7 +30,7 @@ import numpy as np
 from tqdm import tqdm
 
 from datasetLoader import ClusteringDataset
-from metrics import Metrics, normalized_mutual_info_score as cal_nmi
+from utils.metrics import Metrics, normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from .EDESC_AE import EDESC_AE

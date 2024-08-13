@@ -24,7 +24,7 @@ import h5py
 import os
 import logging
 
-from metrics import Metrics
+from utils.metrics import Metrics
 from .config import config
 
 

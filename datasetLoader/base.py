@@ -85,7 +85,10 @@ class ClusteringDataset(Dataset):
         self.cfg = cfg
         self.name = self.__class__.__name__
         self.needed_data_types = needed_data_types
-        self._full_data = True
+        self.data_dir = os.path.join(self.cfg.get("global", "dataset_dir"), self.name)
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+        self._use_full_data = True
         self._label_data = None
         self._label = None
         self._unlabel_data = None
@@ -103,7 +106,7 @@ class ClusteringDataset(Dataset):
         In the pretrain mode, if there is any unlabeled data, return the length of all data
         In the clustering mode, return the length of the labeled data
         """
-        if self._full_data or self.label is None:
+        if self._use_full_data or self.label is None:
             return self.label_length + self.unlabel_length
         else:
             return self.label_length
@@ -142,7 +145,7 @@ class ClusteringDataset(Dataset):
         
         not suggested to change the default implementation
         """
-        self._full_data = True
+        self._use_full_data = True
 
     def use_label_data(self):
         """
@@ -152,9 +155,9 @@ class ClusteringDataset(Dataset):
         """
         if self.label is None:
             print("There is no available label data, use the full data instead")
-            self._full_data = True
+            self._use_full_data = True
         else:
-            self._full_data = False
+            self._use_full_data = False
 
 
     def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray, None], typing.Union[torch.Tensor, np.ndarray, None]]:
@@ -180,7 +183,7 @@ class ClusteringDataset(Dataset):
         
         Need to be rewritten if you want to load the data as a graph but not use the default data and label.
         """
-        if self.label_data is not None and self.unlabel_data is not None:
+        if self.label_data is not None and self.unlabel_data is not None and self._use_full_data:
             return torch.cat([self.label_data, self.unlabel_data], dim=0), torch.cat(self.label, -torch.ones(self.unlabel_length, dtype=torch.long))
         elif self.label_data is not None:
             return self.label_data, self.label
@@ -188,7 +191,7 @@ class ClusteringDataset(Dataset):
             return self.unlabel_data, None
         # raise NotImplementedError("The load_graph_XY method should be implemented if you want to load the data as a graph")
 
-    def to_graph(self, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
+    def to_graph(self, data_dir=None, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
         """
         method to load the data as a graph, return the graph data, torch_geometric.data.Dataset
         
@@ -199,6 +202,8 @@ class ClusteringDataset(Dataset):
                 the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
             **kwargs: the parameters of the weight type function
         """
+        if data_dir is None:
+            data_dir = self.data_dir
         if self._graph is None:
             self._graph = Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs)
         return self._graph
@@ -330,7 +335,7 @@ class Graph(GraphDataset):
     Attributes:
 
     """
-    def __init__(self, XY_loader, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]= "KNN", transform:typing.Callable=None, **kwargs):
+    def __init__(self, XY_loader, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Callable[[torch.Tensor], typing.Iterable[torch.Tensor]], typing.Literal["cosine", "KNN", "Radius"]]= "KNN", transform:typing.Callable=None, **kwargs):
         self.data_name = data_name if data_name is not None else os.path.basename(data_dir).split()[0]
         self.weight_type = weight_type
         self.kwargs = kwargs
@@ -365,6 +370,15 @@ class Graph(GraphDataset):
     def adj_construct(self, X):
         if type(self.weight_type) == typing.Callable:
             adj_mat = self.weight_type(X, **self.kwargs)
+            assert type(adj_mat) is torch.Tensor or type(adj_mat) is typing.Iterable and len(adj_mat) == 2, "The weight matrix should be a torch.Tensor or a tuple or list of (edge_index, edge_weight)"
+            if type(adj_mat) is torch.Tensor:
+                assert adj_mat.size(0) == adj_mat.size(1), "The weight matrix should be a square matrix"
+                edge_index, edge_weight = dense_to_sparse(adj_mat)
+            else:
+                edge_index, edge_weight = adj_mat
+                assert type(edge_index) is torch.Tensor and (edge_weight is None or type(edge_weight) is torch.Tensor), "The edge index should be torch.Tensor and edge weight should be None or torch.Tensor"
+                if edge_weight is not None:
+                    assert edge_index.size(1) == edge_weight.size(0), "The edge index and edge weight should have the same length"
         elif type(self.weight_type) is str:
             if self.weight_type == "cosine":
                 X_norm = X / torch.norm(X, dim=1, keepdim=True)
@@ -373,11 +387,15 @@ class Graph(GraphDataset):
                 edge_index, edge_weight = dense_to_sparse(adj_mat)
             elif self.weight_type == "KNN":
                 k = self.kwargs.get("k", None)
+                if k is None:
+                    k = self.kwargs.get("K", None)
                 assert k is not None, "KNN weight type requires k value to be set."
                 edge_index = knn_graph(torch.Tensor(X), k, **self.kwargs)
                 edge_weight = None
             elif self.weight_type == "Radius":
                 r = self.kwargs.get("r", None)
+                if r is None:
+                    r = self.kwargs.get("R", None)
                 assert r is not None, "Radius weight type requires r value to be set."
                 edge_index = radius_graph(torch.Tensor(X), r, **self.kwargs)
                 edge_weight = None

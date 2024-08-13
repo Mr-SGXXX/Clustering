@@ -31,9 +31,8 @@ class STL10(ClusteringDataset):
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self):
-        data_dir = self.cfg.get("global", "dataset_dir")
-        train_dataset = datasets.STL10(data_dir, split='train', download=True)
-        test_dataset = datasets.STL10(data_dir, split='test', download=True)
+        train_dataset = datasets.STL10(self.data_dir, split='train', download=True)
+        test_dataset = datasets.STL10(self.data_dir, split='test', download=True)
         data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
@@ -43,23 +42,22 @@ class STL10(ClusteringDataset):
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
                 self.name += '_seq_flatten'
             elif self.cfg.get("STL10", "img2seq_method") == 'resnet50':
-                data_dir = os.path.join(data_dir, 'stl10_binary')
-                if os.path.exists(os.path.join(data_dir, 'STL10_label_resnet50.npy')):
-                    data = np.load(os.path.join(data_dir, 'STL10_label_resnet50.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'STL10_label_resnet50.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'STL10_label_resnet50.npy'))
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
-                    np.save(os.path.join(data_dir, 'STL10_label_resnet50.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_label_resnet50.npy'), data)
                 self.name += '_seq_resnet50'
             elif self.cfg.get("STL10", "img2seq_method") == 'hog_color':
-                if os.path.exists(os.path.join(data_dir, 'STL10_label_hog_color.npy')):
-                    data = np.load(os.path.join(data_dir, 'STL10_label_hog_color.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'STL10_label_hog_color.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'STL10_label_hog_color.npy'))
                 else:
                     data = data.transpose((0, 2, 3, 1))
                     features = [
                         np.concatenate((extract_hog_features(img), extract_color_map_features(img)), axis=0) for img in data
                     ]
                     data = np.array(features).astype(np.float32)
-                    np.save(os.path.join(data_dir, 'STL10_hog_color.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_hog_color.npy'), data)
                 self.name += '_seq_hog_color'
             else:
                 raise ValueError(f"`{self.cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
@@ -71,8 +69,7 @@ class STL10(ClusteringDataset):
         return data, label
 
     def unlabeled_data_init(self):
-        data_dir = self.cfg.get("global", "dataset_dir")
-        unlabel_dataset = datasets.STL10(data_dir, split='unlabeled', download=True)
+        unlabel_dataset = datasets.STL10(self.data_dir, split='unlabeled', download=True)
         data = unlabel_dataset.data.numpy()
         if 'img' in self.needed_data_types:
             pass
@@ -80,22 +77,21 @@ class STL10(ClusteringDataset):
             if self.cfg.get("STL10", "img2seq_method") == 'flatten':
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
             elif self.cfg.get("STL10", "img2seq_method") == 'resnet50':
-                data_dir = os.path.join(data_dir, 'stl10_binary')
-                if os.path.exists(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy')):
-                    data = np.load(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'STL10_unlabel_resnet50.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'STL10_unlabel_resnet50.npy'))
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
-                    np.save(os.path.join(data_dir, 'STL10_unlabel_resnet50.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_unlabel_resnet50.npy'), data)
             elif self.cfg.get("STL10", "img2seq_method") == 'hog_color':
-                if os.path.exists(os.path.join(data_dir, 'STL10_unlabel_hog_color.npy')):
-                    data = np.load(os.path.join(data_dir, 'STL10_unlabel_hog_color.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'STL10_unlabel_hog_color.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'STL10_unlabel_hog_color.npy'))
                 else:
                     data = data.transpose((0, 2, 3, 1))
                     features = [
                         np.concatenate((extract_hog_features(img), extract_color_map_features(img)), axis=0) for img in data
                     ]
                     data = np.array(features).astype(np.float32)
-                    np.save(os.path.join(data_dir, 'STL10_hog_color.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_hog_color.npy'), data)
             else:
                 raise ValueError(f"`{self.cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
         else:

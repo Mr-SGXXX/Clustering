@@ -17,30 +17,21 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import torch
-import numpy as np
-import os
-
-from ..base import ClusteringDataset
-from utils import config
-
-class Reuters10K(ClusteringDataset):
-    def __init__(self, cfg: config, needed_data_types:list):
-        super().__init__(cfg, needed_data_types)
-
-    def label_data_init(self):
-        if 'seq' not in self.needed_data_types:
-            raise ValueError(f"Not available data type for reuters10k in {self.needed_data_types}")
-        self.data_type = 'seq'
-        data_path = os.path.join(self.data_dir, "reutersidf10k.npy")
-        if not os.path.exists(data_path):
-            raise FileNotFoundError(f"File {data_path} not found")
-        data = np.load(data_path, allow_pickle=True).item()
-        X = data['data']
-        X = X.reshape(X.shape[0], -1).astype(np.float32)
-        Y = data['label']
-        Y = Y.reshape((Y.size,))
-        return X, Y
+try:
+    from .Graph1 import Graph1
     
-    def data_preprocess(self, sample):
-        return sample
+    MY_METHODS = {
+        "Graph1" : Graph1
+    }
+
+    MY_METHODS_TYPE_FLAG = {
+        "Graph1" : "deep"
+    }
+
+    MY_METHODS_INPUT_TYPES = {
+        "Graph1" : ["img", "seq"]
+    }
+except:
+    MY_METHODS = {}
+    MY_METHODS_TYPE_FLAG = {}
+    MY_METHODS_INPUT_TYPES = {}

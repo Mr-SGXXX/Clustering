@@ -31,9 +31,8 @@ class MNIST(ClusteringDataset):
         super().__init__(cfg, needed_data_types)
     
     def label_data_init(self):
-        data_dir = self.cfg.get("global", "dataset_dir")
-        train_dataset = datasets.MNIST(data_dir, train=True, download=True)
-        test_dataset = datasets.MNIST(data_dir, train=False, download=True)
+        train_dataset = datasets.MNIST(self.data_dir, train=True, download=True)
+        test_dataset = datasets.MNIST(self.data_dir, train=False, download=True)
         data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         data = data.reshape((data.shape[0], 1, data.shape[1], data.shape[2]))
         if 'img' in self.needed_data_types:
@@ -44,12 +43,11 @@ class MNIST(ClusteringDataset):
                 data = data.reshape(data.shape[0], -1).astype(np.float32) / 255 # Normalize to [0, 1]
                 self.name += '_seq_flatten'
             elif self.cfg.get("MNIST", "img2seq_method") == 'resnet50':
-                data_dir = os.path.join(data_dir, 'MNIST')
-                if os.path.exists(os.path.join(data_dir, 'MNIST_resnet50.npy')):
-                    data = np.load(os.path.join(data_dir, 'MNIST_resnet50.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'MNIST_resnet50.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'MNIST_resnet50.npy'))
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
-                    np.save(os.path.join(data_dir, 'MNIST_resnet50.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'MNIST_resnet50.npy'), data)
                 self.name += '_seq_resnet50'
             else:
                 raise ValueError(f"`{self.cfg.get('MNIST', 'img2seq_method')}` is not an available img2seq_method for MNIST")

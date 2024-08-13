@@ -27,7 +27,7 @@ from tqdm import tqdm
 import numpy as np
 import os
 
-from metrics import normalized_mutual_info_score as cal_nmi
+from utils.metrics import normalized_mutual_info_score as cal_nmi
 from datasetLoader import ClusteringDataset
 from utils import config
 from ..base import DeepMethod

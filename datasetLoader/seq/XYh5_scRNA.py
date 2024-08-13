@@ -166,10 +166,10 @@ class XYh5_scRNA(ClusteringDataset):
         self.data_type = 'seq'
         self.data_name = self.cfg.get("XYh5_scRNA", "data_name")
         self.name = self.name + f"_{self.data_name}"
-        self.data_dir = os.path.join(self.cfg.get("global", "dataset_dir"), "XYh5_scRNA")
-        data_path = os.path.join(self.data_dir, f"{self.data_name}.h5")
+        self.data_dir = os.path.join(self.data_dir, self.data_name)
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+        data_path = os.path.join(self.data_dir, f"{self.data_name}.h5")
         if not os.path.exists(data_path):
             if self.data_name in dataset_url:
                 download_dataset(dataset_url[self.data_name], data_path)

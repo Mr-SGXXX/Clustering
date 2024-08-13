@@ -31,9 +31,8 @@ class CIFAR10(ClusteringDataset):
         super().__init__(cfg, needed_data_types)
     
     def label_data_init(self):
-        data_dir = self.cfg.get("global", "dataset_dir")
-        train_dataset = datasets.CIFAR10(data_dir, train=True, download=True)
-        test_dataset = datasets.CIFAR10(data_dir, train=False, download=True)
+        train_dataset = datasets.CIFAR10(self.data_dir, train=True, download=True)
+        test_dataset = datasets.CIFAR10(self.data_dir, train=False, download=True)
         data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         data = data.transpose((0, 3, 1, 2))
         label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
@@ -47,12 +46,11 @@ class CIFAR10(ClusteringDataset):
                 data = data.reshape(data.shape[0], -1).astype(np.float32)
                 self.name += '_seq_flatten'
             elif self.cfg.get("CIFAR10", "img2seq_method") == 'resnet50':
-                data_dir = os.path.join(data_dir, 'cifar-10-batches-py')
-                if os.path.exists(os.path.join(data_dir, 'CIFAR10_resnet50.npy')):
-                    data = np.load(os.path.join(data_dir, 'CIFAR10_resnet50.npy'))
+                if os.path.exists(os.path.join(self.data_dir, 'CIFAR10_resnet50.npy')):
+                    data = np.load(os.path.join(self.data_dir, 'CIFAR10_resnet50.npy'))
                 else:
                     data = ResNet50Extractor(data, self.cfg)().astype(np.float32)
-                    np.save(os.path.join(data_dir, 'CIFAR10_resnet50.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'CIFAR10_resnet50.npy'), data)
                 self.name += '_seq_resnet50'
             else:
                 raise ValueError(f"`{self.cfg.get('CIFAR10', 'img2seq_method')}` is not an available img2seq method for CIFAR10")
