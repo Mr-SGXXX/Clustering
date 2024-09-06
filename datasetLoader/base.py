@@ -205,7 +205,7 @@ class ClusteringDataset(Dataset):
         if data_dir is None:
             data_dir = self.data_dir
         if self._graph is None:
-            self._graph = Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs)
+            self._graph = Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs).data
         return self._graph
 
     @property
