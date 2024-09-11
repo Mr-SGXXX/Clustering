@@ -19,8 +19,22 @@
 # SOFTWARE.
 from .Reuters10K import Reuters10K
 from .XYh5_scRNA import XYh5_scRNA
+from .ACM import ACM
+from .DBLP import DBLP
+from .Cora import Cora
+from .Citeseer import Citeseer
+from .Pubmed import Pubmed
+from .Wiki import Wiki
+from .AMAP import AMAP
 
 SEQ_DATASETS = {
     "Reuters10K": Reuters10K,
-    "XYh5_scRNA": XYh5_scRNA
+    "XYh5_scRNA": XYh5_scRNA,
+    "ACM": ACM,
+    "DBLP": DBLP,
+    "Cora": Cora,
+    "Citeseer": Citeseer,
+    "Pubmed": Pubmed,
+    "Wiki": Wiki,
+    "AMAP": AMAP
 }

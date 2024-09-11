@@ -23,7 +23,7 @@ from .config import config
 
 class ExperimentRecorder:
     def __init__(self, cfg:config, task_name:str="Clustering"):
-        self.db_path = cfg['global']['db_path']
+        self.db_path = cfg['global']['pyerm_db_path']
         if self.db_path is None:
             return
         self.experiment = Experiment(self.db_path)
@@ -32,6 +32,10 @@ class ExperimentRecorder:
         dataset_params = cfg[f'{dataset_name}']
         method_name = cfg['global']['method_name']
         method_params = cfg[f'{method_name}']
+        global_params = cfg['global']
+        global_params.pop('dataset')
+        global_params.pop('method_name')
+        method_params.update(global_params)
         self.experiment.data_init(dataset_name, dataset_params)
         self.experiment.method_init(method_name, method_params)
     

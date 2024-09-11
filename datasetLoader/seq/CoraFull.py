@@ -37,9 +37,9 @@ from utils import config
 class CoraFull(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
-        self._graph: GraphData = CoraFullGraph(root=self.data_dir).data
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
+        self._graph: GraphData = CoraFullGraph(root=self.data_dir).data
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 

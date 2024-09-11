@@ -60,6 +60,9 @@ class config:
         cfg.read(config_path)
         return self(cfg, split_symbol)
     
+    def sections(self):
+        return self.cfg.sections()
+    
     def set(self, session:str=None, option:str=None, value:typing.Any=None):
         """
         Set the value of the option in the configuration file.
@@ -142,3 +145,4 @@ class config:
             for option in other.cfg.options(section):
                 self.set(section, option, other.get(section, option))
         return self
+    

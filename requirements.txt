@@ -96,6 +96,7 @@ toolz==0.12.1
 torch==2.1.2
 torch_geometric==2.5.3
 torchaudio==2.1.2
+torch-kmeans==0.2.0
 torchvision==0.16.2
 tornado==6.4.1
 tqdm==4.66.1

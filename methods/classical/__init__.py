@@ -19,6 +19,8 @@
 # SOFTWARE.
 from .kmeans import KMeans
 from .spectral_clustering import SpectralClustering
+from .AGC import AGC
+
 
 """
 CLASSICAL_METHODS: A dict of classical clustering methods.
@@ -32,7 +34,9 @@ CLASSICAL_METHODS = {
     # A simple implement for K-means
     "KMeans": KMeans,
     # A simple implement for Spectral Clustering
-    "SpectralClustering": SpectralClustering
+    "SpectralClustering": SpectralClustering,
+    # Xiaotong Zhang, Han Liu, Qimai Li and Xiao-Ming Wu, Attributed Graph Clustering via Adaptive Graph Convolution, IJCAI, 2019.
+    "AGC": AGC
 }
 
 
@@ -43,5 +47,6 @@ The key is the name of the method, and the value is the flag list, and the flag 
 """
 CLASSICAL_METHODS_INPUT_TYPES = {
     "KMeans": ["seq"],
-    "SpectralClustering": ["seq"]
+    "SpectralClustering": ["seq"],
+    "AGC": ["seq"]
 }

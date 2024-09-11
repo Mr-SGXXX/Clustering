@@ -24,8 +24,6 @@ import typing
 import requests
 import tqdm
 
-from datasetLoader import ClusteringDataset
-
 from .base import ClusteringDataset
 
 class ReassignDataset(Dataset):

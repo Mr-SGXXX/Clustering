@@ -91,9 +91,11 @@ class Metrics:
             self.Loss[key].update(kwargs[key])
         self.clustering_time_cost += time() - start_time
 
-    def update(self, y_pred: np.ndarray, features: typing.Union[torch.Tensor | np.ndarray | None] = None, y_true: typing.Union[np.ndarray | None] = None):
+    def update(self, y_pred: np.ndarray, features: typing.Union[torch.Tensor, np.ndarray, None] = None, y_true: typing.Union[np.ndarray, None] = None):
         """
         In each clustering epoch, update every metric in the metrics, which will be used for generating metrics figures.
+        
+        When the ground truth is not available, those clustering scores whicb need it will not be calculated.
         """
         start_time = time()
         assert features is None or type(
@@ -202,7 +204,7 @@ def evaluate(y_pred, y_true):
     assert y_pred is not None, "y_pred is necessary!"
     assert y_true is not None, "y_true is necessary!"
     y_true = y_true.astype(np.int64)
-    assert y_pred.size == y_true.size
+    assert y_pred.size == y_true.size, f"y_pred[{y_pred.size}] and y_true[{y_true.size}] must have the same size"
     acc = cluster_acc(y_true, y_pred)
     nmi = normalized_mutual_info_score(y_true, y_pred)
     ari = adjusted_rand_score(y_true, y_pred)

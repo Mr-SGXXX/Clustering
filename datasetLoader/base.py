@@ -119,7 +119,7 @@ class ClusteringDataset(Dataset):
 
         for those unlabeled data, return (torch.Tensor, None, torch.Tensor)
         """
-        data = self.data_preprocess(self.label_data[index])
+        data = self._data_preprocess(self.label_data[index] if index < self.label_length else self.unlabel_data[index - self.label_length])
         if type(data) is not torch.Tensor and type(data) is not np.ndarray:
             raise ValueError(
                 "The data should be torch.Tensor or np.ndarray after the data preprocess")
@@ -136,8 +136,17 @@ class ClusteringDataset(Dataset):
 
         When you need to preprocess the data of single sample (the data is not a Tensor when loaded in `data_init`), you need to overwrite this method
         """
-        assert type(sample) is torch.Tensor or type(sample) is np.ndarray, "The sample should be torch.Tensor or np.ndarray, consider to overwrite the data_preprocess method to preprocess the data"
         return sample
+
+    def _data_preprocess(self, sample) -> typing.Union[torch.Tensor, np.ndarray]:
+        """
+        preprocess a single sample, return the preprocessed data, torch.Tensor or np.ndarray
+
+        When you need to preprocess the data of single sample (the data is not a Tensor when loaded in `data_init`), you need to overwrite `data_preprocess` method
+        """
+        sample = self.data_preprocess(sample)
+        assert type(sample) is torch.Tensor or type(sample) is np.ndarray, "The sample should be torch.Tensor or np.ndarray, consider to overwrite the data_preprocess method to preprocess the data"
+        return torch.tensor(sample)
 
     def use_full_data(self):
         """
@@ -194,7 +203,7 @@ class ClusteringDataset(Dataset):
     def to_graph(self, data_dir=None, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
         """
         method to load the data as a graph, return the graph data, torch_geometric.data.Dataset
-        
+        if the graph data is initialized by using "_graph", return the initialized graph data directly
         Args:
             data_dir (str): the directory of the graph data to save
             data_name (str): the name of the data, default to the name of the directory
@@ -248,7 +257,7 @@ class ClusteringDataset(Dataset):
                     if type(self._label_data) is np.ndarray or type(self._label_data) is torch.Tensor:
                         self._input_dim = list(self._label_data.shape[1:])
                     else:
-                        self._input_dim = list(self.data_preprocess(self._label_data[0]).shape)
+                        self._input_dim = list(self._data_preprocess(self._label_data[0]).shape)
                     if len(self._input_dim) == 1:
                         self._input_dim = self._input_dim[0]
                 else:
@@ -317,6 +326,16 @@ class ClusteringDataset(Dataset):
             if self.label_data is None and self.unlabel_data is None:
                 raise ValueError("No available data")
         return self._input_dim
+    
+    @property
+    def data(self) -> torch.Tensor:
+        """
+        the processed data of the dataset, (torch.Tensor, torch.Tensor)
+        """
+        if self.label_data is not None:
+            return torch.stack([self._data_preprocess(raw_data) for raw_data in self.label_data], dim=0)
+        else:
+            return torch.stack([self._data_preprocess(raw_data) for raw_data in self.unlabel_data], dim=0)
 
     
 class Graph(GraphDataset):

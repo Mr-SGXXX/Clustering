@@ -38,9 +38,9 @@ from utils import config
 class Cora(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
-        self._graph: GraphData = CoraGraph(root=self.data_dir).data
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
+        self._graph: GraphData = CoraGraph(root=self.data_dir).data
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 
@@ -75,7 +75,6 @@ class CoraGraph(GraphDataset):
         adj = torch.tensor(np.load(os.path.join(self.raw_dir, "cora_adj.npy")), dtype=torch.long)
         
         adj_t = SparseTensor.from_dense(adj)
-        
         data = GraphData(x=X, y=Y, edge_index=adj_t)
         
         torch.save(data, self.processed_paths[0])

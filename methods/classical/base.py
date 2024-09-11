@@ -29,6 +29,7 @@ class ClassicalMethod:
         self.cfg = cfg
         self.description = description
         self.logger = logger
+        self.device = cfg.get("global", "device")
         if cfg.get("global", "use_ground_truth_K") and dataset.label is not None:
             self.n_clusters = dataset.num_classes
         else:

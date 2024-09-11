@@ -20,6 +20,8 @@
 import numpy as np
 from logging import Logger
 from sklearn.cluster import KMeans as skKMeans
+from torch_kmeans import KMeans as cudaKMeans
+import torch
 
 from utils import config
 from datasetLoader import ClusteringDataset
@@ -32,10 +34,15 @@ class KMeans(ClassicalMethod):
         self.max_iterations = cfg.get("KMeans", "max_iterations")
 
     def fit(self):
-        return skKMeans(n_clusters=self.n_clusters, max_iter=self.max_iterations).fit_predict(self.dataset.data), self.dataset.data
+        if self.device.startswith("cuda"):
+            rst = cudaKMeans(n_clusters=self.n_clusters, max_iter=self.max_iterations, seed=self.cfg["global"]["seed"]).fit_predict(torch.tensor(self.dataset.data, device=self.device).unsqueeze(0))
+            # rst = rst.cpu().numpy().squeeze()
+            return rst, self.dataset.data
+        else:
+            return skKMeans(n_clusters=self.n_clusters, max_iter=self.max_iterations, random_state=self.cfg["global"]["seed"]).fit_predict(self.dataset.data), self.dataset.data
         # return kmeans(self.dataset.data, self.n_clusters, self.max_iterations)
 
-
+# these are my implementation of kmeans, not used in this project
 def kmeans(data, k, max_iterations=100, init='kmeans++'):
     """
     K-means clustering algorithm.
