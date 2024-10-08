@@ -91,13 +91,15 @@ class Metrics:
             self.Loss[key].update(kwargs[key])
         self.clustering_time_cost += time() - start_time
 
-    def update(self, y_pred: np.ndarray, features: typing.Union[torch.Tensor, np.ndarray, None] = None, y_true: typing.Union[np.ndarray, None] = None):
+    def update(self, y_pred: typing.Union[np.ndarray, torch.Tensor], features: typing.Union[torch.Tensor, np.ndarray, None] = None, y_true: typing.Union[np.ndarray, torch.Tensor, None] = None):
         """
         In each clustering epoch, update every metric in the metrics, which will be used for generating metrics figures.
         
         When the ground truth is not available, those clustering scores whicb need it will not be calculated.
         """
         start_time = time()
+        if isinstance(y_pred, torch.Tensor):
+            y_pred = y_pred.cpu().detach().numpy()
         assert features is None or type(
             features) is np.ndarray or type(features) is torch.Tensor, "features should be of type np.ndarray, torch.Tensor or None"
         self.current_epoch += 1
@@ -108,8 +110,9 @@ class Metrics:
         else:
             sc = None
         if y_true is not None:
-            assert type(
-                y_true) is np.ndarray, "y_true should be of type np.ndarray or None"
+            if isinstance(y_true, torch.Tensor):
+                y_true = y_true.cpu().detach().numpy()
+            assert type(y_true) is np.ndarray, "y_true should be of type np.ndarray, torch.Tensor or None"
             acc, nmi, ari, homo, comp = evaluate(y_pred, y_true)
             self.ACC.update(acc)
             self.NMI.update(nmi)
@@ -131,7 +134,7 @@ class Metrics:
         return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
 
     def __str__(self):
-        return f"Current Total Epoch Number: {self.current_epoch}" + \
+        return f"Current Total Epoch Number: {self.current_epoch}\n" + \
             "Clustering Scores:\n" + \
             f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
             f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \

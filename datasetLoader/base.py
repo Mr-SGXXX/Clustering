@@ -26,6 +26,9 @@ from torch_geometric.data.data import BaseData
 from torch_geometric.nn import knn_graph, radius_graph
 from torch_geometric.utils import dense_to_sparse
 from torch_sparse import SparseTensor
+from sklearn.metrics import pairwise_distances as pair
+from sklearn.preprocessing import normalize
+from sklearn.neighbors import NearestNeighbors
 import numpy as np
 import typing
 import os
@@ -200,21 +203,27 @@ class ClusteringDataset(Dataset):
             return self.unlabel_data, None
         # raise NotImplementedError("The load_graph_XY method should be implemented if you want to load the data as a graph")
 
-    def to_graph(self, data_dir=None, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Literal["cosine", "KNN", "Radius"]]="KNN", **kwargs) -> GraphDataset:
+    def to_graph(self, data_dir=None, data_name=None, 
+                 graph_type:typing.Union[typing.Callable[..., torch.Tensor], typing.Literal["KNN", "Radius"]]="KNN", 
+                 distance_type:typing.Union[typing.Literal["Euclidean", "Cosine", "Heat", "NormCos", "Manhattan"]]="Euclidean",
+                 **kwargs) -> GraphData:
         """
         method to load the data as a graph, return the graph data, torch_geometric.data.Dataset
         if the graph data is initialized by using "_graph", return the initialized graph data directly
         Args:
             data_dir (str): the directory of the graph data to save
             data_name (str): the name of the data, default to the name of the directory
-            weight_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["cosine", "KNN", "Radius"]]): 
-                the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
+            graph_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["KNN", "Radius"]]): 
+                the weight type of the graph, default to "KNN", with default k=10. 
+                You can also input a function to generate the adjacency matrix.
+            distance_type (Union[Literal["Euclidean", "Cosine", "Heat", "NormCos", "Manhattan"]]): 
+                the distance type of the graph, default to "Euclidean"
             **kwargs: the parameters of the weight type function
         """
         if data_dir is None:
             data_dir = self.data_dir
         if self._graph is None:
-            self._graph = Graph(self.load_graph_XY, data_dir, data_name, weight_type, transform=None, **kwargs).data
+            self._graph = Graph(self.load_graph_XY, data_dir, data_name, graph_type, distance_type, transform=None, **kwargs).data
         return self._graph
 
     @property
@@ -346,7 +355,7 @@ class Graph(GraphDataset):
         data_dir (str): the directory of the graph data to save
         data_name (str): the name of the data, default to the name of the directory
         XY_loader (Callable): the function to load the data, return the X and Y data
-        weight_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["cosine", "KNN", "Radius"]]): 
+        graph_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["cosine", "KNN", "Radius"]]): 
             the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
         transform (Callable): the transform function of the data before calculating graph adjacency matrix, default to None
         **kwargs: the parameters of the weight type function
@@ -354,14 +363,18 @@ class Graph(GraphDataset):
     Attributes:
 
     """
-    def __init__(self, XY_loader, data_dir, data_name=None, weight_type:typing.Union[typing.Callable[[torch.Tensor], torch.Tensor], typing.Callable[[torch.Tensor], typing.Iterable[torch.Tensor]], typing.Literal["cosine", "KNN", "Radius"]]= "KNN", transform:typing.Callable=None, **kwargs):
+    def __init__(self, XY_loader, data_dir, data_name=None, 
+                 graph_type:typing.Union[typing.Callable[..., torch.Tensor], typing.Literal["KNN", "Radius"]]= "KNN",
+                 distance_type:typing.Union[typing.Literal["Euclidean", "Cosine", "Heat", "NormCos"]]="Euclidean", 
+                 transform:typing.Callable=None, **kwargs):
         self.data_name = data_name if data_name is not None else os.path.basename(data_dir).split()[0]
-        self.weight_type = weight_type
+        self.graph_type = graph_type
+        self.distance_type = distance_type
         self.kwargs = kwargs
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
         super(Graph, self).__init__(data_dir, transform, pre_transform=XY_loader)
-        self.data = torch.load(self.processed_paths[0]) # contains only one graph data constructed by the whole dataset   
+        self.data:GraphData = torch.load(self.processed_paths[0]) # contains only one graph data constructed by the whole dataset   
 
     def download(self):
         raise RuntimeError("Dataset not found. Please put the data file in the correct directory first.")
@@ -383,13 +396,23 @@ class Graph(GraphDataset):
     
     @property
     def processed_file_names(self):
-        weight_name = self.weight_type if type(self.weight_type) is str else self.weight_type.__name__
-        return [f"{self.data_name}_{weight_name}_Graph.pt"]
+        weight_name = self.graph_type if type(self.graph_type) is str else self.graph_type.__name__
+        v = self.kwargs.get("k", 5) if self.graph_type == "KNN" else self.kwargs.get("r", None)
+        assert v is not None, "Radius graph requires r value to be set."
+        return [f"{self.data_name}_{weight_name}_{v}_Graph.pt"]
+    
+    @property
+    def raw_file_names(self):
+        return []
+    
+    def download(self):
+        pass
     
     def adj_construct(self, X):
-        if type(self.weight_type) == typing.Callable:
-            adj_mat = self.weight_type(X, **self.kwargs)
-            assert type(adj_mat) is torch.Tensor or type(adj_mat) is typing.Iterable and len(adj_mat) == 2, "The weight matrix should be a torch.Tensor or a tuple or list of (edge_index, edge_weight)"
+        if isinstance(self.graph_type, typing.Callable):
+            adj_mat = self.graph_type(X, **self.kwargs)
+            assert isinstance(adj_mat, torch.Tensor) and adj_mat.size(0) == adj_mat.size(1) == X.size(0) or type(adj_mat) is typing.Iterable and len(adj_mat) == 2, \
+                "The weight matrix should be a torch.Tensor with the shape of (num_samples, num_samples) or a tuple of (edge_index, edge_weight)"
             if type(adj_mat) is torch.Tensor:
                 assert adj_mat.size(0) == adj_mat.size(1), "The weight matrix should be a square matrix"
                 edge_index, edge_weight = dense_to_sparse(adj_mat)
@@ -398,29 +421,74 @@ class Graph(GraphDataset):
                 assert type(edge_index) is torch.Tensor and (edge_weight is None or type(edge_weight) is torch.Tensor), "The edge index should be torch.Tensor and edge weight should be None or torch.Tensor"
                 if edge_weight is not None:
                     assert edge_index.size(1) == edge_weight.size(0), "The edge index and edge weight should have the same length"
-        elif type(self.weight_type) is str:
-            if self.weight_type == "cosine":
-                X_norm = X / torch.norm(X, dim=1, keepdim=True)
-                adj_mat = torch.mm(X_norm, X_norm.T)
-                adj_mat -= torch.eye(X.size(0))
-                edge_index, edge_weight = dense_to_sparse(adj_mat)
-            elif self.weight_type == "KNN":
-                k = self.kwargs.get("k", None)
-                if k is None:
-                    k = self.kwargs.get("K", None)
-                assert k is not None, "KNN weight type requires k value to be set."
-                edge_index = knn_graph(torch.Tensor(X), k, **self.kwargs)
-                edge_weight = None
-            elif self.weight_type == "Radius":
+        elif isinstance(self.graph_type, str):
+            assert len(X.shape) == 2, "The input data should be sequence, with shape (num_samples, num_features)"
+            if self.graph_type == "KNN":
+                k = self.kwargs.get("k", 5)
+                if self.distance_type == "Euclidean":
+                    edge_index = knn_graph(torch.Tensor(X), k, **self.kwargs)
+                    edge_weight = None
+                elif self.distance_type == "Cosine":
+                    edge_index = knn_graph(torch.Tensor(X), k, cosine=True, **self.kwargs)
+                    edge_weight = None
+                else:
+                    dist = self.cal_distance(X)
+                    k = self.kwargs.get("k", 5)
+                    
+                    inds = []
+                    for i in range(dist.shape[0]):
+                        ind = np.argpartition(dist[i, :], k)[:k]
+                        inds.append(ind)
+                    
+                    adj_mat = np.zeros_like(dist)
+                    
+                    for i, v in enumerate(inds):
+                        for vv in v:
+                            if vv == i:
+                                pass
+                            else:
+                                adj_mat[i, vv] = 1
+                                adj_mat[vv, i] = 1
+                            
+                    adj_mat = torch.tensor(adj_mat)
+                    if self.kwargs.get("loop", False):
+                        adj_mat.fill_diagonal_(1) # add self-loop
+                    edge_index, _ = dense_to_sparse(adj_mat)
+                    edge_weight = None
+            elif self.graph_type == "Radius":
                 r = self.kwargs.get("r", None)
-                if r is None:
-                    r = self.kwargs.get("R", None)
-                assert r is not None, "Radius weight type requires r value to be set."
-                edge_index = radius_graph(torch.Tensor(X), r, **self.kwargs)
-                edge_weight = None
+                assert r is not None, "Radius graph requires r value to be set."
+                if self.distance_type == "Euclidean":
+                    edge_index = radius_graph(torch.Tensor(X), r, **self.kwargs)
+                    edge_weight = None
+                else:
+                    dist = self.cal_distance(X)
+                    adj_mat = dist < r
+                    adj_mat = torch.tensor(adj_mat)
+                    if not self.kwargs.get("loop", False):
+                        adj_mat.fill_diagonal_(0) # remove self-loop
+                    edge_index, _ = dense_to_sparse(adj_mat)
+                    edge_weight = None
             else:
-                raise ValueError(f"Unknown weight type {self.weight_type}! Input a sparse matrix generation function or predefined weight type string!")
+                raise ValueError(f"Unknown weight type {self.graph_type}! Input a sparse matrix generation function or predefined weight type string!")
         else:
-            raise ValueError(f"Unknown weight type {self.weight_type}! Input a sparse matrix generation function or predefined weight type string!")
+            raise ValueError(f"Unknown weight type {self.graph_type}! Input a sparse matrix generation function or predefined weight type string!")
                 
         return edge_index, edge_weight
+    
+    def cal_distance(self, X):
+        if self.distance_type == "Cosine":
+            X_norm = X / np.linalg.norm(X, axis=1, keepdims=True)
+            dist = 1 - np.dot(X_norm, X_norm.T)
+        elif self.distance_type == "NormCos":
+            X_binary = np.where(X > 0, 1, 0)
+            X_normalized = normalize(X_binary, axis=1, norm="l1")
+            dist = 1 - np.dot(X_normalized, X_normalized.T)
+        elif self.distance_type == "Heat":
+            dist = -0.5 * pair(X) ** 2
+            dist = 1-np.exp(dist)
+        elif self.distance_type == "Manhattan":
+            dist = pair(X, metric="manhattan")
+        else:
+            raise ValueError(f"Unknown distance type {self.distance_type}! Input a predefined distance type string!")
+        return dist

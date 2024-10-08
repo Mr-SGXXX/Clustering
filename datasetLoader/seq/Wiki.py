@@ -72,7 +72,7 @@ class WikiGraph(GraphDataset):
     def process(self) -> None:
         X = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_feat.npy")).astype(np.float32), dtype=torch.float)
         Y = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_adj.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
         

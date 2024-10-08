@@ -72,7 +72,7 @@ class config:
         """
         self.cfg.set(session, option, value)
 
-    def get(self, session:str=None, option:str=None):
+    def get(self, session:str=None, option:str=None, default:typing.Any=None):
         """
         Get the value of the option in the configuration file. It will automatically convert the string to the corresponding type.
         :param session: str, session name
@@ -118,7 +118,9 @@ class config:
                     return str_data
             else:
                 return [process(part.strip()) for part in str_data.split(self.split_symbol)]
-        
+            
+        if not self.cfg.has_option(session, option):
+            return default
         str_data = self.cfg.get(session, option)
         return process(str_data)
     

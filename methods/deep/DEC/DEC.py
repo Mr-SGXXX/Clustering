@@ -179,7 +179,7 @@ class DEC(DeepMethod):
             self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
 
         z, _ = self.encode_dataset()
-        y_pred= self.clustering_layer.kmeans_init(z)
+        y_pred = self.clustering_layer.kmeans_init(z)
         y_pred_last = y_pred
         with tqdm(range(self.train_max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:

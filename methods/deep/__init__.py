@@ -25,6 +25,7 @@ from .DeepCluster import DeepCluster
 from .CC import CC
 from .DivClust import DivClust
 from .IIC import IIC
+from .SDCN import SDCN
 
 """
 The Dictionary of Deep clustering methods
@@ -60,6 +61,10 @@ DEEP_METHODS = {
     "IIC": IIC,
     "CC": CC,
     "DeepCluster": DeepCluster,
+    # Bo D, Wang X, Shi C, et al. Structural deep clustering network
+    # Proceedings of the web conference 2020. 2020: 1400-1410.
+    # https://dl.acm.org/doi/abs/10.1145/3366423.3380214
+    "SDCN": SDCN,
 }
 
 """
@@ -72,4 +77,5 @@ DEEP_METHODS_INPUT_TYPES = {
     "EDESC": ["seq"],
     "DEC": ["seq"],
     "IDEC": ["seq"],
+    "SDCN": ["seq"]
 }

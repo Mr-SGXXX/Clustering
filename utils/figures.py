@@ -241,6 +241,7 @@ def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
+    plt.ylim(0, max([max(losses) for losses in losses_list]) * 1.1)
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
@@ -258,6 +259,7 @@ def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
+    plt.ylim(0, max([max(losses) for losses in losses_list]) * 1.1)
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Clustering Loss Chart", fontsize=14)

@@ -13,7 +13,7 @@ cfg/email.cfg
 result/experiments.db
 
 
-!data/Reuters10K
+!data/Reuters10K/reutersidf10k.npy
 !data/ImageNet-10
 !data/ImageNet-Dogs
 

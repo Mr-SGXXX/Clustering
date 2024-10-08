@@ -68,7 +68,7 @@ class AMAPGraph(GraphDataset):
     def process(self) -> None:
         X = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_feat.npy")), dtype=torch.float)
         Y = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_adj.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
         
