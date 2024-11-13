@@ -25,7 +25,9 @@ from .DeepCluster import DeepCluster
 from .CC import CC
 from .DivClust import DivClust
 from .IIC import IIC
-from .SDCN import SDCN
+from .graphs.SDCN import SDCN
+from .graphs.MAGI import MAGI
+from .graphs.DGCluster import DGCluster
 
 """
 The Dictionary of Deep clustering methods
@@ -39,7 +41,7 @@ pretrain() should return the hidden layer representation of the whole dataset.
 There must be any loss update in the metrics by `update_pretrain_loss` to draw the pretrain loss figure.
 For those methods that do not need pretrain, just return None.
 
-train_model() should return the predicted labels, features. 
+clustering() should return the predicted labels, features. 
 There must be a `total_loss` meaning the total model loss update in the metrics by `update_loss` to draw the clustering loss figure.
 If ground truth is available, the `y_true` should be passed to the `update` method of the metrics.
 the args must be the same as the base class in `base.py`.
@@ -65,17 +67,30 @@ DEEP_METHODS = {
     # Proceedings of the web conference 2020. 2020: 1400-1410.
     # https://dl.acm.org/doi/abs/10.1145/3366423.3380214
     "SDCN": SDCN,
+    # Liu Y, Li J, Chen Y, et al. 
+    # Revisiting Modularity Maximization for Graph Clustering: A Contrastive Learning Perspective[C]
+    # Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. 2024: 1968-1979.
+    # https://dl.acm.org/doi/pdf/10.1145/3637528.3671967
+    "MAGI": MAGI,
+    # Bhowmick A, Kosan M, Huang Z, et al. 
+    # DGCLUSTER: A Neural Framework for Attributed Graph Clustering via Modularity Maximization
+    # Proceedings of the AAAI Conference on Artificial Intelligence. 2024, 38(10): 11069-11077.
+    # https://ojs.aaai.org/index.php/AAAI/article/view/28983/29868
+    "DGCluster": DGCluster
 }
 
 """
 DEEP_METHODS_INPUT_TYPES: The Dictionary of Deep clustering methods' input types
 
 The key is the name of the method, and the value is the list of what type of input data the method can directly accept
-such as "seq" for sequential data, "img" for image data, "graph" for graph data, etc
+such as "seq" for sequential data, "img" for image data, etc
 """
 DEEP_METHODS_INPUT_TYPES = {
     "EDESC": ["seq"],
+    "DeepCluster": ["img"],
     "DEC": ["seq"],
     "IDEC": ["seq"],
-    "SDCN": ["seq"]
+    "SDCN": ["seq"],
+    "MAGI": ["seq"],
+    "DGCluster": ["seq"]
 }

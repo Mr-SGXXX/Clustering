@@ -30,6 +30,8 @@ def target_distribution(q):
 def normalize(mx: SparseTensor):
     """Row-normalize sparse matrix"""
     row, col, value = mx.coo()
+    if value is None:
+        value = torch.ones(row.size(0), dtype=torch.float32, device=row.device)
     device = mx.device()
     # 将行和列索引组合成坐标矩阵
     indices = torch.stack([row, col], dim=0)
@@ -57,7 +59,6 @@ def normalize(mx: SparseTensor):
     # r_mat_inv = torch_sparse.set_diag(r_mat_inv, r_inv)
     # mx = r_mat_inv @ mx
     
-    # 使用 indices 和 values 构造 torch.sparse.FloatTensor
     # mx = torch.sparse.FloatTensor(indices, value, mx.sizes())
 
     return mx

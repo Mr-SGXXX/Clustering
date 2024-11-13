@@ -223,6 +223,8 @@ class ClusteringDataset(Dataset):
         if data_dir is None:
             data_dir = self.data_dir
         if self._graph is None:
+            if data_name is None:
+                data_name = self.name
             self._graph = Graph(self.load_graph_XY, data_dir, data_name, graph_type, distance_type, transform=None, **kwargs).data
         return self._graph
 

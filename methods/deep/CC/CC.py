@@ -78,7 +78,7 @@ class CC(DeepMethod):
         self.dataset.use_full_data()
         return None
 
-    def train_model(self):
+    def clustering(self):
         self.dataset.use_label_data()
         if self.resume is not None:
             checkpoint = torch.load(self.resume).to(self.device)
@@ -157,20 +157,22 @@ class CC(DeepMethod):
                 features, assign = self.encode_dataset()
                 y_pred = assign.cpu().detach().numpy().argmax(1)
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, features, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, features, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
                     self.logger.info(
-                        f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}')
+                        f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}')
 
                 epoch_loader.set_postfix({
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
+                    "F1_macro": f1_macro,
+                    "F1_micro": f1_micro,
                     "Delta Label": delta_label,
                     "Delta NMI": delta_nmi
                 })

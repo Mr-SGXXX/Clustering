@@ -24,14 +24,20 @@ import numpy as np
 import random
 import logging
 import typing
+try:
+    from sklearnex import patch_sklearn
+except:
+    def patch_sklearn(): return
 
 from .config import config
+
 def get_args():
     """
     Get command line arguments.
 
     :return: argparse.Namespace, command line arguments
     """
+    patch_sklearn()
     parser = argparse.ArgumentParser(description="Implementation of Clustering Methods, detailed setting is in the configuration file")
     parser.add_argument('-cp', '--config_path', default='./cfg/example.cfg', help="Configuration file path")
     parser.add_argument('-ss', '--split_symbol', default=',', help="Configuration file delimiter")

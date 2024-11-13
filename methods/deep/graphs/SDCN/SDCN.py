@@ -33,13 +33,13 @@ import os
 
 from datasetLoader import ClusteringDataset
 from utils.metrics import normalized_mutual_info_score as cal_nmi
+from utils.metrics import evaluate
 from utils import config
 
 from .SDCN_layer import AE, GNNLayer
 from .SDCN_utils import target_distribution, normalize
 
-from ..layers import ClusteringLayer
-from ..base import DeepMethod
+from methods.deep.base import DeepMethod
 # This method reproduction refers to the following repository:
 # https://github.com/bdy9527/SDCN
 
@@ -58,24 +58,8 @@ class SDCN(DeepMethod):
         self.train_max_epoch = cfg.get("SDCN", "train_max_epoch")
         self.tol = cfg.get("SDCN", "tol")
 
-        # self.ae= AE(self.input_dim, self.encoder_dims, self.hidden_dim).to(self.device)
         self.ae = AE(500, 500, 2000, 2000, 500, 500, self.input_dim, self.hidden_dim).to(self.device)
-        # self.gcns = nn.ModuleList()
-        # # self.gcns.append(GCNConv(self.input_dim, self.encoder_dims[0], normalize=False).to(self.device))
-        # # for i in range(len(self.encoder_dims)-1):
-        # #     self.gcns.append(GCNConv(self.encoder_dims[i], self.encoder_dims[i+1], normalize=False).to(self.device))
-        # # self.gcns.append(GCNConv(self.encoder_dims[-1], self.hidden_dim, normalize=False).to(self.device))
-        # # self.gcns.append(GCNConv(self.hidden_dim, self.n_clusters, normalize=False).to(self.device))
         
-        # self.gcns.append(GNNLayer(self.input_dim, self.encoder_dims[0])).to(self.device)
-        # for i in range(len(self.encoder_dims)-1):
-        #     self.gcns.append(GNNLayer(self.encoder_dims[i], self.encoder_dims[i+1]).to(self.device))
-        # self.gcns.append(GNNLayer(self.encoder_dims[-1], self.hidden_dim).to(self.device))
-        # self.gcns.append(GNNLayer(self.hidden_dim, self.n_clusters).to(self.device))        
-        # self.cluster_layer:ClusteringLayer = ClusteringLayer(self.n_clusters, self.hidden_dim, alpha=self.alpha).to(self.device)
-        
-        # # for gcn in self.gcns:
-        # #     nn.init.xavier_uniform_(gcn.lin.weight)
         self.gnn_1 = GNNLayer(self.input_dim, 500).to(self.device)
         self.gnn_2 = GNNLayer(500, 500).to(self.device)
         self.gnn_3 = GNNLayer(500, 2000).to(self.device)
@@ -86,15 +70,6 @@ class SDCN(DeepMethod):
         torch.nn.init.xavier_normal_(self.cluster_layer.data)
     
     def forward(self, x, adj):
-        # x_bar, z, encoder_embeds = self.ae(x)
-        
-        # h = self.gcns[0](x, adj)
-        # for i in range(1, len(self.gcns)-1):
-        #     h = self.gcns[i]((1-self.sigma) * h + self.sigma * encoder_embeds[i-1], adj)
-        # h1 = self.gcns[-1]((1-self.sigma) * h + self.sigma * z, adj, active=False)
-        # pred = F.softmax(h1, dim=1)
-        # q = self.cluster_layer(z)
-        
         x_bar, tra1, tra2, tra3, z = self.ae(x)
         
         sigma = 0.5
@@ -132,7 +107,7 @@ class SDCN(DeepMethod):
         self.dataset.use_full_data()
         self.train()
         model = self.ae
-        print(model)
+        # print(model)
         train_loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
         optimizer = optim.Adam(model.parameters(), lr=self.pretrain_lr)
         with tqdm(range(30), desc="Pretrain AE", dynamic_ncols=True, leave=False) as epoch_loader:
@@ -141,7 +116,6 @@ class SDCN(DeepMethod):
                 for batch_idx, (x, _, _) in enumerate(train_loader):
                     x = x.to(self.device)
                     
-                    # x_bar, _, _ = model(x)
                     x_bar = model(x)[0]
                     loss = F.mse_loss(x_bar, x)
                     total_loss += loss.item()
@@ -149,14 +123,6 @@ class SDCN(DeepMethod):
                     loss.backward()
                     optimizer.step()
 
-                # with torch.no_grad():
-                #     x = torch.Tensor(self.dataset.label_data).to(self.device)
-                #     x_bar, _, _, _, z = model(x)
-                #     loss = F.mse_loss(x_bar, x)
-                #     print('{} loss: {}'.format(epoch, loss))           
-                #     kmeans = KMeans(n_clusters=4, n_init=20).fit(z.data.cpu().numpy())
-                #     _, (acc, nmi, ari, _, _) = self.metrics.update(kmeans.labels_, y_true=self.dataset.label)
-                #     print(f"Pretrain Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}")
                 if (epoch+1) % 10 == 0:
                     self.logger.info("Pretrain Epoch {} loss={:.4f}".format(
                         epoch + 1, total_loss / (batch_idx + 1)))
@@ -167,7 +133,7 @@ class SDCN(DeepMethod):
         self.logger.info("Pretraining finished!")
         return self.encode_dataset()
     
-    def train_model(self):
+    def clustering(self):
         self.dataset.use_label_data()
         graph:GraphData = self.dataset.to_graph(distance_type="NormCos", k=3)
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
@@ -177,13 +143,13 @@ class SDCN(DeepMethod):
         edge_index = normalize(edge_index)
         # print(edge_index)
         with torch.no_grad():
-            # z = self.ae(x)[1]
             z = self.ae(x)[4]
-        # y_pred = self.cluster_layer.kmeans_init(z)
-        # y_pred_last = y_pred
+            
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
-        _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=graph.y)
+
+        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
         y_pred_last = y_pred
         self.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(self.device)
         with tqdm(range(self.train_max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
@@ -191,9 +157,7 @@ class SDCN(DeepMethod):
                 if epoch % 1 == 0:
                 # update_interval
                     _, tmp_q, pred, h = self(x, edge_index)
-                    # tmp_q = tmp_q.data
                     p = target_distribution(tmp_q.data)
-                    # p = target_distribution(pred.data)
                 
                     y_pred = pred.data.cpu().numpy().argmax(1)   #Z
                     
@@ -212,15 +176,14 @@ class SDCN(DeepMethod):
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, h, y_true=graph.y)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, h, y_true=graph.y)
                 else:
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=graph.y)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=graph.y)
                 
                 self.metrics.update_loss(total_loss=total_loss.item(), kl_loss=kl_loss.item(), ce_loss=ce_loss.item(), re_loss=re_loss.item())
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
-                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 # if delta_label < self.tol:
                 #     es_count += 1
                 # else:
@@ -232,6 +195,8 @@ class SDCN(DeepMethod):
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
+                    "F1_macro": f1_macro,
+                    "F1_micro": f1_micro,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

@@ -41,7 +41,7 @@ class AGC(ClassicalMethod):
         super().__init__(dataset, description, logger, cfg)
         self.max_iter = cfg.get("AGC", "max_iterations")
         
-    def fit(self):
+    def clustering(self):
         # load data
         graph_data:Data = self.dataset.to_graph()
         feature = graph_data.x.to(self.device)
@@ -71,7 +71,7 @@ class AGC(ClassicalMethod):
             
             if intra_list[tt] > intra_list[tt - 1] or tt > self.max_iter:
                 self.logger.info(f"Best power: {tt-1}")
-                return predict_label, feature
+                return predict_label, u
             
         
 def normalize_adj(adj:typing.Union[torch.Tensor, SparseTensor], type='sym'):

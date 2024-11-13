@@ -38,6 +38,7 @@ warnings.filterwarnings("ignore")
 def main():
     # initialize the configuration
     cfg = get_args()
+    experiment_recorder = ExperimentRecorder(cfg)
     make_dir(cfg)
     start_time = time.time()
     description = (
@@ -60,8 +61,6 @@ def main():
             cfg.get("global", "email_cfg_path"), logger=logger)
     else:
         reminder = None
-    experiment_recorder = ExperimentRecorder(cfg)
-    
     
     # Start the experiment
     experiment_recorder.experiment_start(description, start_time)
@@ -100,41 +99,45 @@ def main():
         if method_flag == "classical":
             train_start_time = time.time()
             method = method(dataset, description, logger, cfg)
-            pred_labels, features = method.fit()
-            acc, nmi, ari, homo, comp = evaluate(pred_labels, dataset.label)
+            pred_labels, features = method.clustering()
+            acc, nmi, ari, f1_macro, f1_micro, homo, comp = evaluate(pred_labels, dataset.label)
         elif method_flag == "deep":
             pretrain_start_time = time.time()
             method = method(dataset, description, logger, cfg)
             pretrain_features = method.pretrain()
             train_start_time = time.time()
-            pred_labels, features = method.train_model()
+            pred_labels, features = method.clustering()
             metrics = method.metrics
-            acc, nmi, ari, homo, comp = metrics.ACC.last, metrics.NMI.last, metrics.ARI.last, metrics.HOMO.last, metrics.COMP.last
+            acc, nmi, ari, f1_macro, f1_micro, homo, comp = metrics.ACC.last, metrics.NMI.last, metrics.ARI.last, metrics.F1_macro.last, metrics.F1_micro.last, metrics.HOMO.last, metrics.COMP.last
         else:
             raise NotImplementedError(
                 f"Method Type {method_flag} Is Not Implemented!")
-
+            
+        train_end_time = time.time()
+        
         rst_dict = {
             "ACC": acc,
             "NMI": nmi,
             "ARI": ari,
+            "F1_macro": f1_macro,
+            "F1_micro": f1_micro,
             "HOMO": homo,
             "COMP": comp,
         }
-        train_end_time = time.time()
-
-        # TODO: draw figures and save the results
+        
+        # draw figures and save the results
         if metrics is not None:
             logger.info("Clustering Over!")
             logger.info(str(metrics))
-            pretrain_start_time += metrics.pretrain_time_cost
+            if pretrain_start_time is not None:
+                pretrain_start_time += metrics.pretrain_time_cost
             train_end_time -= metrics.clustering_time_cost
             logger.info(
                 f"Pretrain Time Cost: {train_start_time - pretrain_start_time:.2f}s" if pretrain_start_time is not None else "")
         else:
             logger.info(
                 f"Clustering Over!\n" +
-                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}"
+                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}"
             )
         logger.info(
             f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
@@ -183,7 +186,7 @@ def main():
     except Exception as e:
         error_info = traceback.format_exc()
         logger.info(
-            f"Experiment Going Wrong, Error: {e}\nFull traceback:{error_info}")
+            f"Experiment Going Wrong\nFull traceback:{error_info}")
         if reminder is not None:
             reminder.send_message(
                 f"Experiment {description} failed.\n" +

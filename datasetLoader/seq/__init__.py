@@ -19,13 +19,14 @@
 # SOFTWARE.
 from .Reuters10K import Reuters10K
 from .XYh5_scRNA import XYh5_scRNA
-from .ACM import ACM
-from .DBLP import DBLP
-from .Cora import Cora
-from .Citeseer import Citeseer
-from .Pubmed import Pubmed
-from .Wiki import Wiki
-from .AMAP import AMAP
+from .graphs.ACM import ACM
+from .graphs.DBLP import DBLP
+from .graphs.Cora import Cora
+from .graphs.Citeseer import Citeseer
+from .graphs.Pubmed import Pubmed
+from .graphs.Wiki import Wiki
+from .graphs.AMAP import AMAP
+
 
 SEQ_DATASETS = {
     "Reuters10K": Reuters10K,

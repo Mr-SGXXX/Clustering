@@ -43,5 +43,5 @@ class IIC(DeepMethod):
     def pretrain(self):
         pass
 
-    def train_model(self):
+    def clustering(self):
         pass

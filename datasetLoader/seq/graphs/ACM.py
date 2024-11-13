@@ -32,20 +32,20 @@ from torch_sparse import SparseTensor
 import typing
 import zipfile
 
-from ..base import ClusteringDataset
+from datasetLoader.base import ClusteringDataset
 from utils import config
 
-class AMAP(ClusteringDataset):
+class ACM(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph: GraphData = AMAPGraph(root=self.data_dir).data
+        self._graph: GraphData = ACMGraph(root=self.data_dir).data
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 
-class AMAPGraph(GraphDataset):
-    google_id = "1qqLWPnBOPkFktHfGMrY9nu8hioyVZV31"
+class ACMGraph(GraphDataset):
+    google_id = "19j7zmQ-AMgzTX7yZoKzUK5wVxQwO5alx"
     
     def __init__(self, root:str, transform: typing.Callable[..., typing.Any] = None) -> None:
         super().__init__(root, transform, pre_transform=None)
@@ -53,22 +53,22 @@ class AMAPGraph(GraphDataset):
         
     def download(self) -> None:
         if not os.path.exists(self.raw_paths[0]):
-            download_google_url(self.google_id, self.raw_dir, "amap.zip")
+            download_google_url(self.google_id, self.raw_dir, "acm.zip")
         with zipfile.ZipFile(self.raw_paths[0], 'r') as f:
             f.extractall(self.raw_dir)
         
     @property
     def raw_file_names(self) -> str:
-        return ["amap.zip", "amap_adj.npy", "amap_feat.npy", "amap_label.npy"]
+        return ["acm.zip", "acm_adj.npy", "acm_feat.npy", "acm_label.npy"]
     
     @property
     def processed_file_names(self) -> str:
-        return "amap.pt"
+        return "acm.pt"
     
     def process(self) -> None:
-        X = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_feat.npy")), dtype=torch.float)
-        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_adj.npy")), dtype=torch.float)
+        X = torch.tensor(np.load(os.path.join(self.raw_dir, "acm_feat.npy")), dtype=torch.float)
+        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "acm_label.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "acm_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
         
@@ -84,14 +84,3 @@ class AMAPGraph(GraphDataset):
     def len(self) -> int:
         return 1
     
-    
-    
-if __name__ == "__main__":
-    # print(np.load("data/raw/wiki_feat.npy").astype(np.float32))
-    data = AMAPGraph(root="data").data
-    # 输出各个属性的 shape
-    print(f'Number of nodes: {data.x.shape[0]}')  # 节点数量
-    print(f'Number of features per node: {data.x.shape[1]}')  # 每个节点的特征数量
-    print(f'Number of edges: {data.edge_index.nnz() // 2}')  # 边的数量
-    print(f'Number of node labels: {data.y.shape[0]}')  # 节点标签数量
-    print(f'Number of classes: {data.y.unique().shape[0]}')  # 类别数量

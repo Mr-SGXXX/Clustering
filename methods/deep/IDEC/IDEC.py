@@ -28,12 +28,12 @@ import numpy as np
 import os
 
 from datasetLoader import ClusteringDataset
-from utils.metrics import Metrics, normalized_mutual_info_score as cal_nmi
+from utils.metrics import Metrics, evaluate, normalized_mutual_info_score as cal_nmi
 from utils import config
 
 from ..base import DeepMethod
 from ..DEC.DEC_AE import DEC_AE
-from ..layers import ClusteringLayer
+from ..DEC.DEC_ClusteringLayer import ClusteringLayer
 from ..DEC.DEC_utils import target_distribution
 import torch
 from torch.utils.data import DataLoader
@@ -89,7 +89,7 @@ class IDEC(DeepMethod):
             pretrain_path = os.path.join(self.weight_dir, pretrain_path)
         else:
             pretrain_path = ""
-        if pretrain_path is not None and self.cfg.get("global", "use_pretrain") and os.path.exists(pretrain_path):
+        if pretrain_path is not None and self.cfg.get("global", "use_pretrain_weight") and os.path.exists(pretrain_path):
             self.logger.info(f"Pretrained weight found, Loading pretrained model in {pretrain_path}...")
             if os.path.splitext(pretrain_path)[1] == ".pth":
                 self.ae.load_state_dict(torch.load(pretrain_path))
@@ -102,7 +102,7 @@ class IDEC(DeepMethod):
             weight_path = os.path.join(self.weight_dir, f"{self.description}_pretrain.pth")
             if not os.path.exists(pretrain_path):
                 self.logger.info("Pretrained weight not found, Pretraining...")
-            elif not self.cfg.get("global", "use_pretrain"):
+            elif not self.cfg.get("global", "use_pretrain_weight"):
                 self.logger.info("Not using pretrained weight, Pretraining...")
                 
             if self.cfg.get("IDEC", "layer_wise_pretrain"):
@@ -172,7 +172,7 @@ class IDEC(DeepMethod):
 
         return self.encode_dataset()[0]
 
-    def train_model(self):
+    def clustering(self):
         self.dataset.use_label_data()
         self.ae.defreeze()
         es_count = 0
@@ -182,6 +182,8 @@ class IDEC(DeepMethod):
 
         z, _ = self.encode_dataset()
         y_pred= self.clustering_layer.kmeans_init(z)
+        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
         y_pred_last = y_pred
         iter_time = 0
         stop_train_flag = False
@@ -191,9 +193,9 @@ class IDEC(DeepMethod):
                 total_rec_loss = 0
                 total_kl_loss = 0
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     if iter_time % self.update_interval == 0:
                         z, q_full = self.encode_dataset()
@@ -226,7 +228,7 @@ class IDEC(DeepMethod):
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
                 else:
@@ -238,6 +240,8 @@ class IDEC(DeepMethod):
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
+                    "F1_macro": f1_macro,
+                    "F1_micro": f1_micro,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

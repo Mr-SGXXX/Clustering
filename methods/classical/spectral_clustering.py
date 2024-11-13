@@ -39,12 +39,12 @@ class SpectralClustering(ClassicalMethod):
         self.distance_type = cfg.get("SpectralClustering", "distance_type")
         self.device = cfg.get("global", "device")
     
-    def fit(self):
-        # sc = skSpectralClustering(n_clusters=self.n_clusters, affinity=self.distance_type)
-        # pred_labels = sc.fit_predict(self.dataset.data)
-        # sc_embed = sc.affinity_matrix_.toarray()
-        # return pred_labels, sc_embed
-        return spectral_clustering(self.dataset.data, self.n_clusters, cut_type=self.cut_type, distance=self.distance_type, device=self.device)
+    def clustering(self):
+        sc = skSpectralClustering(n_clusters=self.n_clusters, affinity=self.distance_type)
+        pred_labels = sc.fit_predict(self.dataset.data)
+        sc_embed = sc.affinity_matrix_.toarray()
+        return pred_labels, sc_embed
+        # return spectral_clustering(self.dataset.data, self.n_clusters, cut_type=self.cut_type, distance=self.distance_type, device=self.device)
 
 
 def spectral_clustering(X, n_clusters, A=None, cut_type: typing.Literal["RatioCut", "NCut"] = 'NCut',

@@ -100,12 +100,15 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                 'ACC': rst_metrics.ACC.val_list,
                 'NMI': rst_metrics.NMI.val_list,
                 'ARI': rst_metrics.ARI.val_list,
-                'SC': rst_metrics.SC.val_list,
+                'F1_macro': rst_metrics.F1_macro.val_list,
+                'F1_micro': rst_metrics.F1_micro.val_list,
+                'SC': rst_metrics.SC.val_list
             }
-            logger.info("Generate Clustering Score Chart")
-            gen_clustering_chart_metrics_score(
-                rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
-            figure_paths_dict["clustering_score_figure"] = clustering_score_figure_path
+            if len(rst_metrics.Loss) > 1 or rst_metrics.num_score_record > 1:
+                logger.info("Generate Clustering Score Chart")
+                gen_clustering_chart_metrics_score(
+                    rst_metrics.Loss['total_loss'].val_list, score_dict, clustering_score_figure_path)
+                figure_paths_dict["clustering_score_figure"] = clustering_score_figure_path
         if len(rst_metrics.epoch_feature_dict) > 0:
             logger.info("Generate Clustering Process Visualization")
             draw_epoch_tsne_umap(rst_metrics, dataset, method, figure_dir, true_labels)
@@ -286,7 +289,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     text_positions = []  # To keep track of text positions to avoid overlap
 
     # Plotting for ax2
-    color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown'}
+    color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown', 'F1_macro': 'purple', 'F1_micro': 'pink'}
     for metric, values in score_dict.items():
         if len(values) != 0:
             metric_line, = ax2.plot(

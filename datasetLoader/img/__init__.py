@@ -22,6 +22,7 @@ from .FashionMNIST import FashionMNIST
 from .CIFAR10 import CIFAR10
 from .CIFAR100 import CIFAR100
 from .STL10 import STL10
+from .USPS import USPS
 from .ImageNet_Dogs import ImageNet_Dogs
 from .ImageNet_10 import ImageNet_10
 
@@ -31,6 +32,7 @@ IMG_DATASETS = {
     "CIFAR10": CIFAR10,
     "CIFAR100": CIFAR100,
     "STL10": STL10,
+    "USPS": USPS,
     "ImageNet-Dogs": ImageNet_Dogs,
     "ImageNet-10": ImageNet_10,
 }

@@ -22,7 +22,6 @@
 import torch
 import numpy as np
 import os
-import shutil
 from torch_geometric.data.data import BaseData
 from torch_geometric.data import Data as GraphData
 from torch_geometric.data import Dataset as GraphDataset
@@ -32,21 +31,20 @@ from torch_sparse import SparseTensor
 import typing
 import zipfile
 
-from ..base import ClusteringDataset
+from datasetLoader.base import ClusteringDataset
 from utils import config
 
-class Citeseer(ClusteringDataset):
+class CoraFull(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph: GraphData = CiteseerGraph(root=self.data_dir).data
+        self._graph: GraphData = CoraFullGraph(root=self.data_dir).data
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 
-class CiteseerGraph(GraphDataset):
-    "This dataset is also called Cite"
-    google_id = "1dEsxq5z5dc35tS3E46pg6pc2LUMlF6jF"
+class CoraFullGraph(GraphDataset):
+    google_id = "1XLqs084J3xgWW9jtbBXJOmmY84goT1CE"
     
     def __init__(self, root:str, transform: typing.Callable[..., typing.Any] = None) -> None:
         super().__init__(root, transform, pre_transform=None)
@@ -54,26 +52,22 @@ class CiteseerGraph(GraphDataset):
         
     def download(self) -> None:
         if not os.path.exists(self.raw_paths[0]):
-            download_google_url(self.google_id, self.raw_dir, "citeseer.zip")
+            download_google_url(self.google_id, self.raw_dir, "corafull.zip")
         with zipfile.ZipFile(self.raw_paths[0], 'r') as f:
             f.extractall(self.raw_dir)
-        shutil.move(os.path.join(self.raw_dir, "citeseer/citeseer_adj.npy"), os.path.join(self.raw_dir, "citeseer_adj.npy"))
-        shutil.move(os.path.join(self.raw_dir, "citeseer/citeseer_feat.npy"), os.path.join(self.raw_dir, "citeseer_feat.npy"))
-        shutil.move(os.path.join(self.raw_dir, "citeseer/citeseer_label.npy"), os.path.join(self.raw_dir, "citeseer_label.npy"))
-        os.rmdir(os.path.join(self.raw_dir, "citeseer"))
         
     @property
     def raw_file_names(self) -> str:
-        return ["citeseer.zip", "citeseer_adj.npy", "citeseer_feat.npy", "citeseer_label.npy"]
+        return ["corafull.zip", "corafull_adj.npy", "corafull_feat.npy", "corafull_label.npy"]
     
     @property
     def processed_file_names(self) -> str:
-        return "citeseer.pt"
+        return "corafull.pt"
     
     def process(self) -> None:
-        X = torch.tensor(np.load(os.path.join(self.raw_dir, "citeseer_feat.npy")), dtype=torch.float)
-        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "citeseer_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "citeseer_adj.npy")), dtype=torch.float)
+        X = torch.tensor(np.load(os.path.join(self.raw_dir, "corafull_feat.npy")), dtype=torch.float)
+        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "corafull_label.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "corafull_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
         
@@ -88,4 +82,3 @@ class CiteseerGraph(GraphDataset):
     
     def len(self) -> int:
         return 1
-    

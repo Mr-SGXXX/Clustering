@@ -34,7 +34,7 @@ class USPS(ClusteringDataset):
         train_dataset = datasets.USPS(self.data_dir, train=True, download=True)
         test_dataset = datasets.USPS(self.data_dir, train=False, download=True)
         data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
-        data = data.transpose((0, 3, 1, 2))
+        data = np.expand_dims(data, axis=1)
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
             self.name += '_img'
@@ -55,7 +55,7 @@ class USPS(ClusteringDataset):
         else:
             raise ValueError(f"No available data type for USPS in {self.needed_data_types}")
         label = np.concatenate((train_dataset.targets, test_dataset.targets), axis=0)
-        label = label.reshape((self.label.size,))
+        label = label.reshape((label.size,))
         return data, label
     
     def data_preprocess(self, sample):

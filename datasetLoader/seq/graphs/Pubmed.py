@@ -32,7 +32,7 @@ from torch_sparse import SparseTensor
 import typing
 import zipfile
 
-from ..base import ClusteringDataset
+from datasetLoader.base import ClusteringDataset
 from utils import config
 
 class Pubmed(ClusteringDataset):

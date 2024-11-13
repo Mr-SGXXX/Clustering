@@ -33,11 +33,11 @@ class KMeans(ClassicalMethod):
         super().__init__(dataset, description, logger, cfg)
         self.max_iterations = cfg.get("KMeans", "max_iterations")
 
-    def fit(self):
+    def clustering(self):
         if self.device.startswith("cuda"):
             rst = cudaKMeans(n_clusters=self.n_clusters, max_iter=self.max_iterations, seed=self.cfg["global"]["seed"]).fit_predict(torch.tensor(self.dataset.data, device=self.device).unsqueeze(0))
             # rst = rst.cpu().numpy().squeeze()
-            return rst, self.dataset.data
+            return rst.view(-1).cpu().numpy(), self.dataset.data
         else:
             return skKMeans(n_clusters=self.n_clusters, max_iter=self.max_iterations, random_state=self.cfg["global"]["seed"]).fit_predict(self.dataset.data), self.dataset.data
         # return kmeans(self.dataset.data, self.n_clusters, self.max_iterations)

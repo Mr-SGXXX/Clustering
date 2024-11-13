@@ -103,7 +103,7 @@ class DeepCluster(DeepMethod):
         self.train()
         return latent
 
-    def train_model(self):
+    def clustering(self):
         learning_rate = self.cfg.get("DeepCluster", "learn_rate")
         weight_decay = self.cfg.get("DeepCluster", "weight_decay")
         optimizer = optim.SGD(
@@ -150,9 +150,9 @@ class DeepCluster(DeepMethod):
 
                 # evaluate clustering performance
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, features, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, features, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
 
                 # assign pseudo-labels
                 train_dataset = reassign_dataset(self.dataset, self.clustering.images_lists)
@@ -205,7 +205,7 @@ class DeepCluster(DeepMethod):
                 
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
-                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}\n')
+                self.logger.info(f'Epoch {epoch + 1}\tAcc {acc:.4f}\tNMI {nmi:.4f}\tARI {ari:.4f}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}\n')
                 self.logger.info(f"Clustering Loss: {clustering_loss}\tConvNet Loss: {total_loss / len(train_dataloader):.4f}")
                 y_pred_last = y_pred
 
@@ -213,6 +213,8 @@ class DeepCluster(DeepMethod):
                     "ACC": acc,
                     "NMI": nmi,
                     "ARI": ari,
+                    "F1_macro": f1_macro,
+                    "F1_micro": f1_micro,
                     "Delta Label": delta_label,
                     "Delta NMI": delta_nmi
                 })

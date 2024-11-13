@@ -20,6 +20,7 @@
 import numpy as np
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score, homogeneity_score, completeness_score
 from sklearn.metrics import silhouette_score as sklearn_silhouette_score
+from sklearn.metrics import accuracy_score, f1_score
 from scipy.optimize import linear_sum_assignment as linear_assignment
 from logging import Logger
 import typing
@@ -48,13 +49,15 @@ class Metrics:
         self.ACC = AverageMeter("ACC")
         self.NMI = AverageMeter("NMI")
         self.ARI = AverageMeter("ARI")
+        self.F1_macro = AverageMeter("F1_macro")
+        self.F1_micro = AverageMeter("F1_micro")
         self.HOMO = AverageMeter("HOMO")
         self.COMP = AverageMeter("COMP")
         self.SC = AverageMeter("SC")
         self.PretrainLoss = {}
         self.Loss = {}
         self.epoch_feature_dict = {}
-        self.current_epoch = 0
+        self.num_score_record = 0
         self.pretrain_time_cost = 0
         self.clustering_time_cost = 0
 
@@ -102,7 +105,7 @@ class Metrics:
             y_pred = y_pred.cpu().detach().numpy()
         assert features is None or type(
             features) is np.ndarray or type(features) is torch.Tensor, "features should be of type np.ndarray, torch.Tensor or None"
-        self.current_epoch += 1
+        self.num_score_record += 1
         if features is not None:
             # when the size of dataset is too big, calculate the sc costs too much time.
             sc = clusters_scores(y_pred, features)
@@ -113,32 +116,34 @@ class Metrics:
             if isinstance(y_true, torch.Tensor):
                 y_true = y_true.cpu().detach().numpy()
             assert type(y_true) is np.ndarray, "y_true should be of type np.ndarray, torch.Tensor or None"
-            acc, nmi, ari, homo, comp = evaluate(y_pred, y_true)
+            acc, nmi, ari, f1_macro, f1_micro, homo, comp = evaluate(y_pred, y_true)
             self.ACC.update(acc)
             self.NMI.update(nmi)
             self.ARI.update(ari)
+            self.F1_macro.update(f1_macro)
+            self.F1_micro.update(f1_micro)
             self.HOMO.update(homo)
             self.COMP.update(comp)
         else:
-            acc, nmi, ari, homo, comp = None, None, None, None, None
+            acc, nmi, ari, f1_macro, f1_micro, homo, comp = None, None, None, None, None, None, None
         self.clustering_time_cost += time() - start_time
-        return (sc,), (acc, nmi, ari, homo, comp)
+        return (sc,), (acc, nmi, ari, f1_macro, f1_micro, homo, comp)
 
     def max(self):
-        return (self.SC.max,), (self.ACC.max, self.NMI.max, self.ARI.max, self.HOMO.max, self.COMP.max)
+        return (self.SC.max,), (self.ACC.max, self.NMI.max, self.ARI.max, self.F1_macro.max, self.F1_micro.max, self.HOMO.max, self.COMP.max)
 
     def min(self):
-        return (self.SC.min,), (self.ACC.min, self.NMI.min, self.ARI.min, self.HOMO.min, self.COMP.min)
+        return (self.SC.min,), (self.ACC.min, self.NMI.min, self.ARI.min, self.F1_macro.min, self.F1_micro.min, self.HOMO.min, self.COMP.min)
 
     def avg(self):
-        return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.HOMO.avg, self.COMP.avg)
-
+        return (self.SC.avg,), (self.ACC.avg, self.NMI.avg, self.ARI.avg, self.F1_macro.avg, self.F1_micro.avg, self.HOMO.avg, self.COMP.avg)
+        
     def __str__(self):
-        return f"Current Total Epoch Number: {self.current_epoch}\n" + \
+        return f"Current Total Score Record Number: {self.num_score_record}\n" + \
             "Clustering Scores:\n" + \
-            f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\n" + \
+            f"Last Epoch Scores: ACC: {self.ACC.last:.4f}\tNMI: {self.NMI.last:.4f}\tARI: {self.ARI.last:.4f}\tF1_macro: {self.F1_macro.last:.4f}\tF1_micro: {self.F1_micro.last:.4f}\n" + \
             f"Last Epoch Additional Scores: SC: {self.SC.last:.4f}\tHOMO: {self.HOMO.last:.4f}\tCOMP: {self.COMP.last:.4f}\n" + \
-            f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\n" + \
+            f"Best Scores/Epoch: ACC: {self.ACC.max:.4f}/{self.ACC.argmax}\tNMI: {self.NMI.max:.4f}/{self.NMI.argmax}\tARI:{self.ARI.max:.4f}/{self.ARI.argmax}\tF1_macro: {self.F1_macro.max:.4f}/{self.F1_macro.argmax}\tF1_micro: {self.F1_micro.max:.4f}/{self.F1_micro.argmax}\n" + \
             f"Best Additional Scores/Epoch: SC: {self.SC.max:.4f}/{self.SC.argmax}\tHOMO: {self.HOMO.max:.4f}/{self.HOMO.argmax}\tCOMP: {self.COMP.max:.4f}/{self.COMP.argmax}"
 
 
@@ -194,7 +199,12 @@ def cluster_acc(y_true, y_pred):
     ind = linear_assignment(w.max() - w)
     ind = np.array((ind[0], ind[1])).T
     # pdb.set_trace()
-    return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
+    y_pred_reassigned = np.zeros(y_pred.shape)
+    for i in range(y_pred.size):
+        y_pred_reassigned[i] = ind[y_pred[i], 1]
+    f1_macro = f1_score(y_true, y_pred_reassigned, average='macro')
+    f1_micro = f1_score(y_true, y_pred_reassigned, average='micro')
+    return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size, f1_macro, f1_micro
 
 
 def evaluate(y_pred, y_true):
@@ -208,12 +218,13 @@ def evaluate(y_pred, y_true):
     assert y_true is not None, "y_true is necessary!"
     y_true = y_true.astype(np.int64)
     assert y_pred.size == y_true.size, f"y_pred[{y_pred.size}] and y_true[{y_true.size}] must have the same size"
-    acc = cluster_acc(y_true, y_pred)
+    acc, f1_macro, f1_micro = cluster_acc(y_true, y_pred)
     nmi = normalized_mutual_info_score(y_true, y_pred)
     ari = adjusted_rand_score(y_true, y_pred)
+    
     homo = homogeneity_score(y_true, y_pred)
     comp = completeness_score(y_true, y_pred)
-    return acc, nmi, ari, homo, comp
+    return acc, nmi, ari, f1_macro, f1_micro, homo, comp
 
 
 def clusters_scores(y_pred, features):

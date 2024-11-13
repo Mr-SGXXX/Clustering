@@ -63,9 +63,9 @@ class DeepMethod(nn.Module):
 
         For those methods that do not need pretraining, just return None.
         """
-        raise NotImplementedError
+        return None
 
-    def train_model(self):
+    def clustering(self):
         """
         This method is used to train the model.
 
