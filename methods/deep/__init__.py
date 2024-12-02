@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,8 +28,12 @@ from .CC import CC
 from .DivClust import DivClust
 from .IIC import IIC
 from .graphs.SDCN import SDCN
+from .graphs.DFCN import DFCN
 from .graphs.MAGI import MAGI
 from .graphs.DGCluster import DGCluster
+from .graphs.DCRN import DCRN
+from .graphs.DMoN import DMoN
+from .graphs.MinCutPool import MinCutPool
 
 """
 The Dictionary of Deep clustering methods
@@ -67,16 +73,36 @@ DEEP_METHODS = {
     # Proceedings of the web conference 2020. 2020: 1400-1410.
     # https://dl.acm.org/doi/abs/10.1145/3366423.3380214
     "SDCN": SDCN,
+    # Bianchi F M, Grattarola D, Alippi C.
+    # Spectral clustering with graph neural networks for graph pooling[C]
+    # International conference on machine learning. PMLR, 2020: 874-883.
+    # https://proceedings.mlr.press/v119/bianchi20a/bianchi20a.pdf
+    "MinCutPool": MinCutPool,
+    # Tu W, Zhou S, Liu X, et al. 
+    # Deep fusion clustering network[C]
+    # Proceedings of the AAAI Conference on Artificial Intelligence. 2021, 35(11): 9978-9987.
+    # https://ojs.aaai.org/index.php/AAAI/article/view/17198/17005
+    "DFCN": DFCN,
+    # Liu Y, Tu W, Zhou S, et al. 
+    # Deep graph clustering via dual correlation reduction[C]
+    # Proceedings of the AAAI conference on artificial intelligence. 2022, 36(7): 7603-7611.
+    # https://ojs.aaai.org/index.php/AAAI/article/view/20726/20485
+    "DCRN": DCRN,
+    # Tsitsulin A, Palowitch J, Perozzi B, et al.
+    # Graph clustering with graph neural networks[J].
+    # Journal of Machine Learning Research, 2023, 24(127): 1-21.
+    # https://www.jmlr.org/papers/volume24/20-998/20-998.pdf
+    "DMoN": DMoN,
+    # Bhowmick A, Kosan M, Huang Z, et al. 
+    # DGCLUSTER: A Neural Framework for Attributed Graph Clustering via Modularity Maximization
+    # Proceedings of the AAAI Conference on Artificial Intelligence. 2024, 38(10): 11069-11077.
+    # https://ojs.aaai.org/index.php/AAAI/article/view/28983/29868
+    "DGCluster": DGCluster,
     # Liu Y, Li J, Chen Y, et al. 
     # Revisiting Modularity Maximization for Graph Clustering: A Contrastive Learning Perspective[C]
     # Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. 2024: 1968-1979.
     # https://dl.acm.org/doi/pdf/10.1145/3637528.3671967
     "MAGI": MAGI,
-    # Bhowmick A, Kosan M, Huang Z, et al. 
-    # DGCLUSTER: A Neural Framework for Attributed Graph Clustering via Modularity Maximization
-    # Proceedings of the AAAI Conference on Artificial Intelligence. 2024, 38(10): 11069-11077.
-    # https://ojs.aaai.org/index.php/AAAI/article/view/28983/29868
-    "DGCluster": DGCluster
 }
 
 """
@@ -91,6 +117,10 @@ DEEP_METHODS_INPUT_TYPES = {
     "DEC": ["seq"],
     "IDEC": ["seq"],
     "SDCN": ["seq"],
+    "MinCutPool": ["seq"],
+    "DFCN": ["seq"],
+    "DCRN": ["seq"],
+    "DMoN": ["seq"],
     "MAGI": ["seq"],
     "DGCluster": ["seq"]
 }

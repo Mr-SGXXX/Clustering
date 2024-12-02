@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -84,14 +86,3 @@ class AMAPGraph(GraphDataset):
     def len(self) -> int:
         return 1
     
-    
-    
-if __name__ == "__main__":
-    # print(np.load("data/raw/wiki_feat.npy").astype(np.float32))
-    data = AMAPGraph(root="data").data
-    # 输出各个属性的 shape
-    print(f'Number of nodes: {data.x.shape[0]}')  # 节点数量
-    print(f'Number of features per node: {data.x.shape[1]}')  # 每个节点的特征数量
-    print(f'Number of edges: {data.edge_index.nnz() // 2}')  # 边的数量
-    print(f'Number of node labels: {data.y.shape[0]}')  # 节点标签数量
-    print(f'Number of classes: {data.y.unique().shape[0]}')  # 类别数量

@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -102,10 +104,10 @@ class DEC(DeepMethod):
                 self.logger.info("Pretrained weight not found, Pretraining...")
             elif not self.cfg.get("global", "use_pretrain_weight"):
                 self.logger.info("Not use pretrained weight, Pretraining...")
-            
+                
+            train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
             if self.cfg.get("DEC", "layer_wise_pretrain"):
                 # Pretrain in greedy layer-wise way
-                train_loader = DataLoader(self.dataset, self.batch_size, shuffle=True, num_workers=self.workers)
                 with tqdm(range(len(self.encoder_dims) + 1), desc="Pretrain Stacked AE Period1", dynamic_ncols=True, leave=False) as level_loader:
                     for i in level_loader:
                         optimizer = optim.SGD(self.ae.parameters(), lr=self.pretrain_lr, momentum=self.momentum)
@@ -181,8 +183,8 @@ class DEC(DeepMethod):
 
         z, _ = self.encode_dataset()
         y_pred = self.clustering_layer.kmeans_init(z)
-        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
-        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
+        acc, nmi, ari, f1_macro, f1_weighted, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}")
         y_pred_last = y_pred
         with tqdm(range(self.train_max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
@@ -195,9 +197,9 @@ class DEC(DeepMethod):
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     data = data.to(self.device)
                     x_bar, q, z = self(data)
@@ -209,7 +211,7 @@ class DEC(DeepMethod):
                 total_loss /= len(train_loader)
                 self.metrics.update_loss(total_loss=total_loss)
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                     self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
@@ -223,7 +225,7 @@ class DEC(DeepMethod):
                     "NMI": nmi,
                     "ARI": ari,
                     "F1_macro": f1_macro,
-                    "F1_micro": f1_micro,
+                    "F1_weighted": f1_weighted,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

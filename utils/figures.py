@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -101,7 +103,7 @@ def draw_charts(rst_metrics: typing.Union[Metrics, None],
                 'NMI': rst_metrics.NMI.val_list,
                 'ARI': rst_metrics.ARI.val_list,
                 'F1_macro': rst_metrics.F1_macro.val_list,
-                'F1_micro': rst_metrics.F1_micro.val_list,
+                'F1_weighted': rst_metrics.F1_weighted.val_list,
                 'SC': rst_metrics.SC.val_list
             }
             if len(rst_metrics.Loss) > 1 or rst_metrics.num_score_record > 1:
@@ -244,7 +246,7 @@ def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
-    plt.ylim(0, max([max(losses) for losses in losses_list]) * 1.1)
+    plt.ylim(min([min(losses) for losses in losses_list]), max([max(losses) for losses in losses_list]) * 1.1)
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
@@ -262,7 +264,7 @@ def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
-    plt.ylim(0, max([max(losses) for losses in losses_list]) * 1.1)
+    plt.ylim(min([min(losses) for losses in losses_list]), max([max(losses) for losses in losses_list]) * 1.1)
     plt.legend(loc='best')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Clustering Loss Chart", fontsize=14)
@@ -289,7 +291,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     text_positions = []  # To keep track of text positions to avoid overlap
 
     # Plotting for ax2
-    color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown', 'F1_macro': 'purple', 'F1_micro': 'pink'}
+    color = {'ACC': 'red', 'NMI': 'orange', 'ARI': 'green', 'SC': 'brown', 'F1_macro': 'purple', 'F1_weighted': 'pink'}
     for metric, values in score_dict.items():
         if len(values) != 0:
             metric_line, = ax2.plot(

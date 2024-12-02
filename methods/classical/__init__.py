@@ -35,7 +35,10 @@ CLASSICAL_METHODS = {
     "KMeans": KMeans,
     # A simple implement for Spectral Clustering
     "SpectralClustering": SpectralClustering,
-    # Xiaotong Zhang, Han Liu, Qimai Li and Xiao-Ming Wu, Attributed Graph Clustering via Adaptive Graph Convolution, IJCAI, 2019.
+    # Xiaotong Zhang, Han Liu, Qimai Li and Xiao-Ming Wu,
+    # Attributed Graph Clustering via Adaptive Graph Convolution,
+    # IJCAI, 2019.
+    # https://arxiv.org/pdf/1906.01210
     "AGC": AGC
 }
 

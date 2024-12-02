@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# this dataset refers to "https://github.com/yueliu1999/Awesome-Deep-Graph-Clustering/tree/main/dataset" by Yue Liu
 import torch
 import numpy as np
 import os
@@ -28,6 +29,7 @@ from torch_geometric.data import Data as GraphData
 from torch_geometric.data import Dataset as GraphDataset
 from torch_geometric.data import download_google_url
 from torch_geometric.utils import dense_to_sparse
+from torch_geometric.datasets import Planetoid
 from torch_sparse import SparseTensor
 import typing
 import zipfile
@@ -40,10 +42,14 @@ class Pubmed(ClusteringDataset):
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph: GraphData = PubmedGraph(root=self.data_dir).data
+        # self._graph: GraphData = PubmedGraph(root=self.data_dir).data
+        # use the pyg dataset instead
+        self._graph: GraphData = Planetoid(root=self.data_dir, name="Pubmed").data
+        self._graph.edge_index = SparseTensor.from_edge_index(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()
     
-
+    
+# this dataset refers to "https://github.com/yueliu1999/Awesome-Deep-Graph-Clustering/tree/main/dataset" by Yue Liu
 class PubmedGraph(GraphDataset):
     google_id = "1tdr20dvvjZ9tBHXj8xl6wjO9mQzD0rzA"
     

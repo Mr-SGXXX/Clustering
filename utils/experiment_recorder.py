@@ -1,3 +1,5 @@
+
+# MIT License
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,9 +34,12 @@ class ExperimentRecorder:
         dataset_params = cfg[f'{dataset_name}']
         method_name = cfg['global']['method_name']
         method_params = cfg[f'{method_name}']
-        global_params = cfg['global']
-        global_params.pop('dataset')
-        global_params.pop('method_name')
+        global_params = {}
+        global_params['seed'] = cfg['global']['seed']
+        global_params['n_clusters'] = cfg['global']['n_clusters']
+        global_params['use_ground_truth_K'] = cfg['global']['use_ground_truth_K']
+        global_params['use_pretrain_weight'] = cfg['global']['use_pretrain_weight']
+        global_params['workers'] = cfg['global']['workers']
         method_params.update(global_params)
         self.experiment.data_init(dataset_name, dataset_params)
         self.experiment.method_init(method_name, method_params)

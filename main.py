@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -38,7 +40,6 @@ warnings.filterwarnings("ignore")
 def main():
     # initialize the configuration
     cfg = get_args()
-    experiment_recorder = ExperimentRecorder(cfg)
     make_dir(cfg)
     start_time = time.time()
     description = (
@@ -62,6 +63,7 @@ def main():
     else:
         reminder = None
     
+    experiment_recorder = ExperimentRecorder(cfg)
     # Start the experiment
     experiment_recorder.experiment_start(description, start_time)
     try:
@@ -100,7 +102,7 @@ def main():
             train_start_time = time.time()
             method = method(dataset, description, logger, cfg)
             pred_labels, features = method.clustering()
-            acc, nmi, ari, f1_macro, f1_micro, homo, comp = evaluate(pred_labels, dataset.label)
+            acc, nmi, ari, f1_macro, f1_weighted, homo, comp = evaluate(pred_labels, dataset.label)
         elif method_flag == "deep":
             pretrain_start_time = time.time()
             method = method(dataset, description, logger, cfg)
@@ -108,7 +110,7 @@ def main():
             train_start_time = time.time()
             pred_labels, features = method.clustering()
             metrics = method.metrics
-            acc, nmi, ari, f1_macro, f1_micro, homo, comp = metrics.ACC.last, metrics.NMI.last, metrics.ARI.last, metrics.F1_macro.last, metrics.F1_micro.last, metrics.HOMO.last, metrics.COMP.last
+            acc, nmi, ari, f1_macro, f1_weighted, homo, comp = metrics.ACC.last, metrics.NMI.last, metrics.ARI.last, metrics.F1_macro.last, metrics.F1_weighted.last, metrics.HOMO.last, metrics.COMP.last
         else:
             raise NotImplementedError(
                 f"Method Type {method_flag} Is Not Implemented!")
@@ -120,7 +122,7 @@ def main():
             "NMI": nmi,
             "ARI": ari,
             "F1_macro": f1_macro,
-            "F1_micro": f1_micro,
+            "F1_weighted": f1_weighted,
             "HOMO": homo,
             "COMP": comp,
         }
@@ -137,7 +139,7 @@ def main():
         else:
             logger.info(
                 f"Clustering Over!\n" +
-                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}"
+                f"Clustering Scores: ACC: {acc:.4f}\tNMI: {nmi:.4f}\tARI: {ari:.4f}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tHOMO: {homo:.4f}\tCOMP: {comp:.4f}"
             )
         logger.info(
             f"Train Time Cost: {train_end_time - train_start_time:.2f}s")
@@ -199,7 +201,7 @@ def main():
                 (log_path, ),
             )
         print(f"Experiment: {description} failed...")
-        raise e
+        raise Exception()
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -182,8 +184,8 @@ class IDEC(DeepMethod):
 
         z, _ = self.encode_dataset()
         y_pred= self.clustering_layer.kmeans_init(z)
-        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
-        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
+        acc, nmi, ari, f1_macro, f1_weighted, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}")
         y_pred_last = y_pred
         iter_time = 0
         stop_train_flag = False
@@ -193,9 +195,9 @@ class IDEC(DeepMethod):
                 total_rec_loss = 0
                 total_kl_loss = 0
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 for data, _, idx in train_loader:
                     if iter_time % self.update_interval == 0:
                         z, q_full = self.encode_dataset()
@@ -228,7 +230,7 @@ class IDEC(DeepMethod):
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
                 else:
@@ -241,7 +243,7 @@ class IDEC(DeepMethod):
                     "NMI": nmi,
                     "ARI": ari,
                     "F1_macro": f1_macro,
-                    "F1_micro": f1_micro,
+                    "F1_weighted": f1_weighted,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

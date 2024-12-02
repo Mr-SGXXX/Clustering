@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,3 +19,30 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# this dataset is from pyg
+import torch
+import numpy as np
+import os
+import shutil
+from torch_geometric.data.data import BaseData
+from torch_geometric.data import Data as GraphData
+from torch_geometric.data import Dataset as GraphDataset
+from torch_geometric.data import download_google_url
+from torch_geometric.utils import dense_to_sparse
+from torch_geometric.datasets import Reddit
+from torch_sparse import SparseTensor
+import typing
+import zipfile
+
+from datasetLoader.base import ClusteringDataset
+from utils import config
+
+class Reddit(ClusteringDataset):
+    def __init__(self, cfg:config, needed_data_types:list) -> None:
+        super().__init__(cfg, needed_data_types)
+        
+    def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
+        self._graph = Reddit(root=self.data_dir)
+        self._graph.edge_index = SparseTensor.from_edge_index(self._graph.edge_index)
+        return self._graph.x.numpy(), self._graph.y.numpy()

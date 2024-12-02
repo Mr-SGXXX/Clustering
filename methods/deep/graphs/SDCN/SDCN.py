@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -137,7 +139,7 @@ class SDCN(DeepMethod):
         self.dataset.use_label_data()
         graph:GraphData = self.dataset.to_graph(distance_type="NormCos", k=3)
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
-        # es_count = 0
+        es_count = 0
         x = graph.x.to(self.device)
         edge_index = graph.edge_index.to(self.device)
         edge_index = normalize(edge_index)
@@ -148,8 +150,8 @@ class SDCN(DeepMethod):
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=20)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
 
-        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
-        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
+        acc, nmi, ari, f1_macro, f1_weighted, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}")
         y_pred_last = y_pred
         self.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(self.device)
         with tqdm(range(self.train_max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
@@ -174,16 +176,17 @@ class SDCN(DeepMethod):
                 
                 
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
-                y_pred_last = y_pred
+                
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, h, y_true=graph.y)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, h, y_true=graph.y)
                 else:
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=graph.y)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, y_true=graph.y)
                 
                 self.metrics.update_loss(total_loss=total_loss.item(), kl_loss=kl_loss.item(), ce_loss=ce_loss.item(), re_loss=re_loss.item())
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                y_pred_last = y_pred
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 # if delta_label < self.tol:
                 #     es_count += 1
                 # else:
@@ -196,7 +199,7 @@ class SDCN(DeepMethod):
                     "NMI": nmi,
                     "ARI": ari,
                     "F1_macro": f1_macro,
-                    "F1_micro": f1_micro,
+                    "F1_weighted": f1_weighted,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

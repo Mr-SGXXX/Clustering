@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -183,7 +185,7 @@ class MAGI(DeepMethod):
                 Cluster = KMeans(n_clusters=self.n_clusters, max_iter=10000, n_init=20)
                 y_pred = Cluster.fit_predict(z.data.cpu().numpy())
             else:
-                y_pred = kmeans(z, self.n_clusters, batch_size=self.kmeans_batch, device=self.device, tol=1e-4)
+                y_pred, _ = kmeans(z, self.n_clusters, batch_size=self.kmeans_batch, device=self.device, tol=1e-4)
                 y_pred = y_pred.cpu().numpy()
         elif self.clustering_method == "SpectralClustering":
             Cluster = SpectralClustering(
@@ -194,9 +196,9 @@ class MAGI(DeepMethod):
         else:
             raise NotImplementedError(f"Clustering method {self.clustering_method} is not implemented.")
         if self.cfg.get("global", "record_sc"):
-            _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, z, y_true=graph.y)
+            _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, z, y_true=graph.y)
         else:
-            _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=graph.y)
+            _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, y_true=graph.y)
         
-        self.logger.info(f"Final Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
+        self.logger.info(f"Final Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}")
         return y_pred, z

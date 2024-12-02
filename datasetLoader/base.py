@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -100,6 +102,7 @@ class ClusteringDataset(Dataset):
         self._num_classes = None
         self._input_dim = None
         self._graph = None
+        self._data_changed = False
         assert self.label_data is not None or self.unlabel_data is not None, "No available data"
 
     def __len__(self) -> int:
@@ -172,7 +175,7 @@ class ClusteringDataset(Dataset):
             self._use_full_data = False
 
 
-    def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray, None], typing.Union[torch.Tensor, np.ndarray, None]]:
+    def label_data_init(self) -> typing.Tuple[typing.Union[torch.Tensor, np.ndarray, list, None], typing.Union[torch.Tensor, np.ndarray, None]]:
         """
         initialize the `data` of the dataset as `np.ndarray` or `torch.Tensor`, and the `label` of the dataset as `np.ndarray` or `torch.Tensor`.
 
@@ -180,7 +183,7 @@ class ClusteringDataset(Dataset):
         """
         return None, None
 
-    def unlabeled_data_init(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
+    def unlabeled_data_init(self) -> typing.Union[torch.Tensor, np.ndarray, list, None]:
         """
         initialize the `unlabel_data` of the dataset as `np.ndarray`, it should return the `np.ndarray`.
 
@@ -196,14 +199,14 @@ class ClusteringDataset(Dataset):
         Need to be rewritten if you want to load the data as a graph but not use the default data and label.
         """
         if self.label_data is not None and self.unlabel_data is not None and self._use_full_data:
-            return torch.cat([self.label_data, self.unlabel_data], dim=0), torch.cat(self.label, -torch.ones(self.unlabel_length, dtype=torch.long))
+            return self.data, torch.cat(self.label, -torch.ones(self.unlabel_length, dtype=torch.long))
         elif self.label_data is not None:
-            return self.label_data, self.label
+            return self.data, self.label
         else:
-            return self.unlabel_data, None
+            return self.data, None
         # raise NotImplementedError("The load_graph_XY method should be implemented if you want to load the data as a graph")
 
-    def to_graph(self, data_dir=None, data_name=None, 
+    def to_graph(self, data_dir=None, data_desc=None, 
                  graph_type:typing.Union[typing.Callable[..., torch.Tensor], typing.Literal["KNN", "Radius"]]="KNN", 
                  distance_type:typing.Union[typing.Literal["Euclidean", "Cosine", "Heat", "NormCos", "Manhattan"]]="Euclidean",
                  **kwargs) -> GraphData:
@@ -212,7 +215,7 @@ class ClusteringDataset(Dataset):
         if the graph data is initialized by using "_graph", return the initialized graph data directly
         Args:
             data_dir (str): the directory of the graph data to save
-            data_name (str): the name of the data, default to the name of the directory
+            data_desc (str, Optional): the additional desp of the data, default to None
             graph_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["KNN", "Radius"]]): 
                 the weight type of the graph, default to "KNN", with default k=10. 
                 You can also input a function to generate the adjacency matrix.
@@ -223,9 +226,10 @@ class ClusteringDataset(Dataset):
         if data_dir is None:
             data_dir = self.data_dir
         if self._graph is None:
-            if data_name is None:
-                data_name = self.name
-            self._graph = Graph(self.load_graph_XY, data_dir, data_name, graph_type, distance_type, transform=None, **kwargs).data
+            assert not (self._data_changed and data_desc is None), "When you change the original data, you need to give a data description"
+            self._graph = Graph(self.load_graph_XY, data_dir, data_desc, graph_type, distance_type, transform=None,**kwargs).data
+        elif self._data_changed:
+            self._graph.x = self.data
         return self._graph
 
     @property
@@ -262,6 +266,10 @@ class ClusteringDataset(Dataset):
         """
         if self._label_data is None:
             self._label_data, self._label = self.label_data_init()
+            if isinstance(self._label, torch.Tensor):
+                self._label = self._label.to(dtype=torch.long)
+            elif isinstance(self._label, np.ndarray):
+                self._label = self._label.astype(np.int64)
             if self._label_data is not None:
                 self._label_len = len(self._label_data)
                 if self._input_dim is None:
@@ -291,6 +299,10 @@ class ClusteringDataset(Dataset):
     def label(self, new_label):
         assert len(new_label) == len(self._label_data), "The length of the label should be the same as the data"
         self._num_classes = None
+        if isinstance(new_label, torch.Tensor):
+            new_label = new_label.to(dtype=torch.long)
+        elif isinstance(new_label, np.ndarray):
+            new_label = new_label.astype(np.int64)
         self._label = new_label
 
     @property
@@ -341,12 +353,31 @@ class ClusteringDataset(Dataset):
     @property
     def data(self) -> torch.Tensor:
         """
-        the processed data of the dataset, (torch.Tensor, torch.Tensor)
+        the processed data of the whole dataset, (torch.Tensor, torch.Tensor)
         """
         if self.label_data is not None:
-            return torch.stack([self._data_preprocess(raw_data) for raw_data in self.label_data], dim=0)
+            if isinstance(self.label_data, torch.Tensor):
+                rst = self.label_data
+            else:
+                rst = torch.stack([self._data_preprocess(raw_data) for raw_data in self.label_data], dim=0)
+            if self.unlabel_data is not None and self._use_full_data:
+                if isinstance(self.unlabel_data, torch.Tensor):
+                    rst = torch.cat([rst, self.unlabel_data], dim=0)
+                else:
+                    rst = torch.cat([rst, torch.stack([self._data_preprocess(raw_data) for raw_data in self.unlabel_data], dim=0)], dim=0)
+            return rst
         else:
             return torch.stack([self._data_preprocess(raw_data) for raw_data in self.unlabel_data], dim=0)
+
+    
+    @data.setter
+    def data(self, new_data:torch.Tensor):
+        assert len(new_data) == self.label_length + (self.unlabel_length if self.unlabel_data is not None and self._use_full_data else 0), "The length of the new data should be the same as the original data"
+        self._data_changed = True
+        self._input_dim = new_data.shape[1:]
+        self._label_data = new_data[:self.label_length]
+        if self.unlabel_data is not None and self._use_full_data:
+            self._unlabel_data = new_data[self.label_length:]
 
     
 class Graph(GraphDataset):
@@ -355,7 +386,7 @@ class Graph(GraphDataset):
 
     Args:
         data_dir (str): the directory of the graph data to save
-        data_name (str): the name of the data, default to the name of the directory
+        data_desp (str, optional): Additional description for the data. Defaults to None.
         XY_loader (Callable): the function to load the data, return the X and Y data
         graph_type (Union[Callable[[torch.Tensor], torch.Tensor], Literal["cosine", "KNN", "Radius"]]): 
             the weight type of the graph, default to "KNN". You can also input a function to generate the weight matrix.
@@ -365,11 +396,13 @@ class Graph(GraphDataset):
     Attributes:
 
     """
-    def __init__(self, XY_loader, data_dir, data_name=None, 
+    def __init__(self, XY_loader, data_dir, data_desc=None, 
                  graph_type:typing.Union[typing.Callable[..., torch.Tensor], typing.Literal["KNN", "Radius"]]= "KNN",
                  distance_type:typing.Union[typing.Literal["Euclidean", "Cosine", "Heat", "NormCos"]]="Euclidean", 
                  transform:typing.Callable=None, **kwargs):
-        self.data_name = data_name if data_name is not None else os.path.basename(data_dir).split()[0]
+        self.data_name = os.path.basename(data_dir).split()[0]
+        if data_desc is not None:
+            self.data_name += "_" + data_desc
         self.graph_type = graph_type
         self.distance_type = distance_type
         self.kwargs = kwargs
@@ -439,7 +472,7 @@ class Graph(GraphDataset):
                     
                     inds = []
                     for i in range(dist.shape[0]):
-                        ind = np.argpartition(dist[i, :], k)[:k]
+                        ind = np.argpartition(dist[i, :], k+1)[:k+1]
                         inds.append(ind)
                     
                     adj_mat = np.zeros_like(dist)
@@ -488,7 +521,7 @@ class Graph(GraphDataset):
             dist = 1 - np.dot(X_normalized, X_normalized.T)
         elif self.distance_type == "Heat":
             dist = -0.5 * pair(X) ** 2
-            dist = 1-np.exp(dist)
+            dist = 1 - np.exp(dist)
         elif self.distance_type == "Manhattan":
             dist = pair(X, metric="manhattan")
         else:

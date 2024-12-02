@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -71,6 +73,7 @@ class ACMGraph(GraphDataset):
         adj = torch.tensor(np.load(os.path.join(self.raw_dir, "acm_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
+
         
         data = GraphData(x=X, y=Y, edge_index=adj_t)
         

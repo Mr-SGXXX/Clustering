@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -167,8 +169,8 @@ class EDESC(DeepMethod):
         # x_bar, z = self.ae(data)
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=10)
         y_pred = kmeans.fit_predict(z.data.cpu().numpy())
-        acc, nmi, ari, f1_macro, f1_micro, _, _ = evaluate(y_pred, self.dataset.label)
-        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}")
+        acc, nmi, ari, f1_macro, f1_weighted, _, _ = evaluate(y_pred, self.dataset.label)
+        self.logger.info(f"Pretrain Scores: ACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}")
         y_pred_last = y_pred
         D = Initialization_D(z, y_pred, self.n_clusters, self.d)
         self.D.data = torch.tensor(D).to(
@@ -192,11 +194,11 @@ class EDESC(DeepMethod):
                 delta_nmi = cal_nmi(y_pred, y_pred_last)
                 y_pred_last = y_pred
                 if self.cfg.get("global", "record_sc"):
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, z, y_true=self.dataset.label)
                 else:
-                    _, (acc, nmi, ari, f1_macro, f1_micro, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
+                    _, (acc, nmi, ari, f1_macro, f1_weighted, _, _) = self.metrics.update(y_pred, y_true=self.dataset.label)
                 if epoch % 10 == 0:
-                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_micro:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
+                    self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
                 total_reconstr_loss = 0
                 total_kl_loss = 0
                 total_loss_d1 = 0
@@ -253,7 +255,7 @@ class EDESC(DeepMethod):
                     "NMI": nmi,
                     "ARI": ari,
                     "F1_macro": f1_macro,
-                    "F1_micro": f1_micro,
+                    "F1_weighted": f1_weighted,
                     "Delta_label": delta_label,
                     "Delta_NMI": delta_nmi,
                 })

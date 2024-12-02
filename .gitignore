@@ -4,6 +4,7 @@ figures/*
 result/*
 weight/*
 data/*
+.temp/*
 ./*.xls
 others
 

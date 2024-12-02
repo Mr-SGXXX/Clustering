@@ -1,3 +1,5 @@
+# MIT License
+
 # Copyright (c) 2023-2024 Yuxuan Shao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,7 +35,7 @@ def normalize(mx: SparseTensor):
     if value is None:
         value = torch.ones(row.size(0), dtype=torch.float32, device=row.device)
     device = mx.device()
-    # 将行和列索引组合成坐标矩阵
+    
     indices = torch.stack([row, col], dim=0)
 
     mx = sp.coo_matrix((value.cpu().numpy(), indices.cpu().numpy()), shape=mx.sizes())

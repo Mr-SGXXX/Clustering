@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024 Yuxuan Shao
+# Copyright (c) 2024 pyrobits
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,17 @@ import random
 import numpy as np
 import scipy as sp
 
-def loss_fn(output, edge_index, oh_labels, lam=0.0, alp=0.0):
+def loss_fn(output, edge_index, oh_labels, sparse_adj, degree, lam=0.0, alp=0.0):
     num_nodes = output.size(0)
+    num_edges = int((edge_index.shape[1]) / 2)
     device = output.device
+    
     sample_size = int(1 * num_nodes)
-    edge_index
-    num_edges = edge_index.shape[1]
     s = random.sample(range(0, num_nodes), sample_size)
 
     s_output = output[s, :]
 
-    sparse_adj = sp.sparse.csr_matrix((np.ones(num_edges), edge_index.cpu().numpy()), shape=(num_nodes, num_nodes))
-    degree = torch.tensor(sparse_adj.sum(axis=1)).squeeze().float().to(device)
-    num_edges = int((edge_index.shape[1]) / 2)
+
     s_adj = sparse_adj[s, :][:, s]
     s_adj = convert_scipy_torch_sp(s_adj)
     s_degree = degree[s]
