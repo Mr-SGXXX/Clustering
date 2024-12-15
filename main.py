@@ -201,7 +201,7 @@ def main():
                 (log_path, ),
             )
         print(f"Experiment: {description} failed...")
-        raise Exception()
+        raise e
 
 
 if __name__ == "__main__":

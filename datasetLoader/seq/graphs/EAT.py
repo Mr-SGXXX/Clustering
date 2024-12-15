@@ -37,17 +37,20 @@ import zipfile
 from datasetLoader.base import ClusteringDataset
 from utils import config
 
-class AMAP(ClusteringDataset):
+from .utils import count_edges
+
+class EAT(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph: GraphData = AMAPGraph(root=self.data_dir).data
+        self._graph: GraphData = EATGraph(root=self.data_dir).data
+        self._graph.num_edges = count_edges(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 
-class AMAPGraph(GraphDataset):
-    google_id = "1qqLWPnBOPkFktHfGMrY9nu8hioyVZV31"
+class EATGraph(GraphDataset):
+    google_id = "1iE0AFKs1V5-nMk2XhV-TnfmPhvh0L9uo"
     
     def __init__(self, root:str, transform: typing.Callable[..., typing.Any] = None) -> None:
         super().__init__(root, transform, pre_transform=None)
@@ -55,24 +58,25 @@ class AMAPGraph(GraphDataset):
         
     def download(self) -> None:
         if not os.path.exists(self.raw_paths[0]):
-            download_google_url(self.google_id, self.raw_dir, "amap.zip")
+            download_google_url(self.google_id, self.raw_dir, "eat.zip")
         with zipfile.ZipFile(self.raw_paths[0], 'r') as f:
             f.extractall(self.raw_dir)
         
     @property
     def raw_file_names(self) -> str:
-        return ["amap.zip", "amap_adj.npy", "amap_feat.npy", "amap_label.npy"]
+        return ["eat.zip", "eat_adj.npy", "eat_feat.npy", "eat_label.npy"]
     
     @property
     def processed_file_names(self) -> str:
-        return "amap.pt"
+        return "eat.pt"
     
     def process(self) -> None:
-        X = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_feat.npy")), dtype=torch.float)
-        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "amap_adj.npy")), dtype=torch.float)
+        X = torch.tensor(np.load(os.path.join(self.raw_dir, "eat_feat.npy")), dtype=torch.float)
+        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "eat_label.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "eat_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
+
         
         data = GraphData(x=X, y=Y, edge_index=adj_t)
         

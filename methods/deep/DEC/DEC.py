@@ -212,7 +212,6 @@ class DEC(DeepMethod):
                 self.metrics.update_loss(total_loss=total_loss)
                 if epoch % 10 == 0:
                     self.logger.info(f"Epoch {epoch}\tACC: {acc}\tNMI: {nmi}\tARI: {ari}\tF1_macro: {f1_macro:.4f}\tF1_micro: {f1_weighted:.4f}\tDelta Label {delta_label:.4f}\tDelta NMI {delta_nmi:.4f}")
-                    self.logger.info(f"Early stopping at epoch {epoch} with delta_label= {delta_label:.4f}")
                 if delta_label < self.tol:
                     es_count += 1
                 else:

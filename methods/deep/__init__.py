@@ -27,8 +27,11 @@ from .DeepCluster import DeepCluster
 from .CC import CC
 from .DivClust import DivClust
 from .IIC import IIC
+from .graphs.node2vec import node2vec
+from .graphs.DGI import DGI
 from .graphs.SDCN import SDCN
 from .graphs.DFCN import DFCN
+from .graphs.S3GC import S3GC
 from .graphs.MAGI import MAGI
 from .graphs.DGCluster import DGCluster
 from .graphs.DCRN import DCRN
@@ -69,6 +72,12 @@ DEEP_METHODS = {
     "IIC": IIC,
     "CC": CC,
     "DeepCluster": DeepCluster,
+    
+    
+    # Graph Clustering methods
+    "node2vec": node2vec,
+    
+    "DGI": DGI,
     # Bo D, Wang X, Shi C, et al. Structural deep clustering network
     # Proceedings of the web conference 2020. 2020: 1400-1410.
     # https://dl.acm.org/doi/abs/10.1145/3366423.3380214
@@ -93,6 +102,7 @@ DEEP_METHODS = {
     # Journal of Machine Learning Research, 2023, 24(127): 1-21.
     # https://www.jmlr.org/papers/volume24/20-998/20-998.pdf
     "DMoN": DMoN,
+    "S3GC": S3GC,
     # Bhowmick A, Kosan M, Huang Z, et al. 
     # DGCLUSTER: A Neural Framework for Attributed Graph Clustering via Modularity Maximization
     # Proceedings of the AAAI Conference on Artificial Intelligence. 2024, 38(10): 11069-11077.
@@ -116,11 +126,15 @@ DEEP_METHODS_INPUT_TYPES = {
     "DeepCluster": ["img"],
     "DEC": ["seq"],
     "IDEC": ["seq"],
+    # Graph Clustering methods
+    "node2vec": ["seq"],
+    "DGI": ["seq"],
     "SDCN": ["seq"],
     "MinCutPool": ["seq"],
     "DFCN": ["seq"],
     "DCRN": ["seq"],
     "DMoN": ["seq"],
+    "S3GC": ["seq"],
     "MAGI": ["seq"],
     "DGCluster": ["seq"]
 }

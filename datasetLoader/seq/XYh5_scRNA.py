@@ -270,7 +270,7 @@ def normalize(adata, copy=True, highly_genes=None, filter_min_counts=True,
 def load_scRNA_h5data(path, cfg):
     """Loads scRNA-seq dataset"""
     data_mat = h5py.File(
-        f"{path}.h5", "r")
+        path, "r")
     X = np.array(data_mat['X'])
     Y = np.array(data_mat['Y'])
     return load_scRNA_data(X, Y, cfg)
@@ -287,9 +287,9 @@ def load_scRNA_data(X, Y, cfg):
     normalize_input = cfg.get("XYh5_scRNA", "normalize_input")
     logtrans_input = cfg.get("XYh5_scRNA", "logtrans_input")
 
-    X = np.ceil(X).astype(np.int)
+    X = np.ceil(X).astype(np.float64)
     count_X = X
-    print(X.shape, count_X.shape, f"keeping {nb_genes} genes")
+    # print(X.shape, count_X.shape, f"keeping {nb_genes} genes")
     adata = sc.AnnData(X)
 
     adata = normalize(adata,

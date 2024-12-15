@@ -35,6 +35,6 @@ IMG_DATASETS = {
     "CIFAR100": CIFAR100,
     "STL10": STL10,
     "USPS": USPS,
-    "ImageNet-Dogs": ImageNet_Dogs,
-    "ImageNet-10": ImageNet_10,
+    # "ImageNet-Dogs": ImageNet_Dogs,
+    # "ImageNet-10": ImageNet_10,
 }

@@ -23,11 +23,12 @@
 
 
 
+
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
 REM Check if the correct number of arguments is provided
-IF "%~4" NEQ "" (
+IF "%~5" NEQ "" (
     echo Usage: %0 conda_env_name run_count [config_file] [device]
     exit /b 1
 )

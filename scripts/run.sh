@@ -24,7 +24,7 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ "$#" -ge 4 ]; then
+if [ "$#" -ge 5 ]; then
     echo "Usage: $0 conda_env_name run_count [config_file] [device]"
     exit 1
 fi

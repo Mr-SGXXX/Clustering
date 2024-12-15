@@ -27,11 +27,14 @@ from .graphs.Cora import Cora
 from .graphs.Citeseer import Citeseer
 from .graphs.Pubmed import Pubmed
 from .graphs.Wiki import Wiki
-from .graphs.AMAP import AMAP
+from .graphs.BAT import BAT
+from .graphs.EAT import EAT
+from .graphs.UAT import UAT
 from .graphs.Amazon_Computers import Amazon_Computers
 from .graphs.Amazon_Photo import Amazon_Photo
 from .graphs.Coauthor_CS import Coauthor_CS
 from .graphs.Coauthor_Physics import Coauthor_Physics
+from .graphs.Reddit import Reddit
 from .graphs.obgn_arxiv import obgn_arxiv
 from .graphs.obgn_products import obgn_products
 from .graphs.obgn_papers100M import obgn_papers100M
@@ -47,11 +50,14 @@ SEQ_DATASETS = {
     "Citeseer": Citeseer,
     "Pubmed": Pubmed,
     "Wiki": Wiki,
-    "AMAP": AMAP,
+    "BAT": BAT,
+    "EAT": EAT,
+    "UAT": UAT,
     "Amazon_Computers": Amazon_Computers,
     "Amazon_Photo": Amazon_Photo,
     "Coauthor_CS": Coauthor_CS,
     "Coauthor_Physics": Coauthor_Physics,
+    "Reddit": Reddit,
     "obgn_arxiv": obgn_arxiv,
     "obgn_products": obgn_products,
     "obgn_papers100M": obgn_papers100M,

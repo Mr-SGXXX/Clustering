@@ -36,6 +36,8 @@ import zipfile
 from datasetLoader.base import ClusteringDataset
 from utils import config
 
+from .utils import count_edges
+
 class obgn_products(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
@@ -44,4 +46,6 @@ class obgn_products(ClusteringDataset):
         self._graph = PygNodePropPredDataset(root=self.data_dir, name="ogbn-products")
         self._graph.edge_index = SparseTensor.from_edge_index(self._graph.edge_index)
         self._graph.y = self._graph.y[:, 0]
+        self._graph.num_edges = count_edges(self._graph.edge_index)
+        self._graph.edge_attr = None
         return self._graph.x.numpy(), self._graph.y.numpy()

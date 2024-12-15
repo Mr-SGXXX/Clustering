@@ -35,7 +35,7 @@ class STL10(ClusteringDataset):
     def label_data_init(self):
         train_dataset = datasets.STL10(self.data_dir, split='train', download=True)
         test_dataset = datasets.STL10(self.data_dir, split='test', download=True)
-        data = np.concatenate((train_dataset.data.numpy(), test_dataset.data.numpy()), axis=0)
+        data = np.concatenate((train_dataset.data, test_dataset.data), axis=0)
         if 'img' in self.needed_data_types:
             self.data_type = 'img'
             self.name += '_img'
@@ -59,7 +59,7 @@ class STL10(ClusteringDataset):
                         np.concatenate((extract_hog_features(img), extract_color_map_features(img)), axis=0) for img in data
                     ]
                     data = np.array(features).astype(np.float32)
-                    np.save(os.path.join(self.data_dir, 'STL10_hog_color.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_label_hog_color.npy'), data)
                 self.name += '_seq_hog_color'
             else:
                 raise ValueError(f"`{self.cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
@@ -72,7 +72,7 @@ class STL10(ClusteringDataset):
 
     def unlabeled_data_init(self):
         unlabel_dataset = datasets.STL10(self.data_dir, split='unlabeled', download=True)
-        data = unlabel_dataset.data.numpy()
+        data = unlabel_dataset.data
         if 'img' in self.needed_data_types:
             pass
         elif 'seq' in self.needed_data_types:
@@ -93,7 +93,7 @@ class STL10(ClusteringDataset):
                         np.concatenate((extract_hog_features(img), extract_color_map_features(img)), axis=0) for img in data
                     ]
                     data = np.array(features).astype(np.float32)
-                    np.save(os.path.join(self.data_dir, 'STL10_hog_color.npy'), data)
+                    np.save(os.path.join(self.data_dir, 'STL10_unlabel_hog_color.npy'), data)
             else:
                 raise ValueError(f"`{self.cfg.get('STL10', 'img2seq_method')}` is not an available img2seq_method for STL10")
         else:

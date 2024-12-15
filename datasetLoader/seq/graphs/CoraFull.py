@@ -36,12 +36,15 @@ import zipfile
 from datasetLoader.base import ClusteringDataset
 from utils import config
 
+from .utils import count_edges
+
 class CoraFull(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
         self._graph: GraphData = CoraFullGraph(root=self.data_dir).data
+        self._graph.num_edges = count_edges(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 

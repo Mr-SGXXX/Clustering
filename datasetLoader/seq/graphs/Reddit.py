@@ -30,7 +30,7 @@ from torch_geometric.data import Data as GraphData
 from torch_geometric.data import Dataset as GraphDataset
 from torch_geometric.data import download_google_url
 from torch_geometric.utils import dense_to_sparse
-from torch_geometric.datasets import Reddit
+from torch_geometric.datasets import Reddit as RedditGraph
 from torch_sparse import SparseTensor
 import typing
 import zipfile
@@ -38,11 +38,14 @@ import zipfile
 from datasetLoader.base import ClusteringDataset
 from utils import config
 
+from .utils import count_edges
+
 class Reddit(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph = Reddit(root=self.data_dir)
+        self._graph = RedditGraph(root=self.data_dir)._data
         self._graph.edge_index = SparseTensor.from_edge_index(self._graph.edge_index)
+        self._graph.num_edges = count_edges(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()

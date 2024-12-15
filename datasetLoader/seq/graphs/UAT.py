@@ -39,18 +39,18 @@ from utils import config
 
 from .utils import count_edges
 
-class Wiki(ClusteringDataset):
+class UAT(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph: GraphData = WikiGraph(root=self.data_dir).data
+        self._graph: GraphData = UATGraph(root=self.data_dir).data
         self._graph.num_edges = count_edges(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()
     
 
-class WikiGraph(GraphDataset):
-    google_id = "1vxupFQaEvw933yUuWzzgQXxIMQ_46dva"
+class UATGraph(GraphDataset):
+    google_id = "1RUTHp54dVPB-VGPsEk8tV32DsSU0l-n_"
     
     def __init__(self, root:str, transform: typing.Callable[..., typing.Any] = None) -> None:
         super().__init__(root, transform, pre_transform=None)
@@ -58,28 +58,30 @@ class WikiGraph(GraphDataset):
         
     def download(self) -> None:
         if not os.path.exists(self.raw_paths[0]):
-            download_google_url(self.google_id, self.raw_dir, "wiki.zip")
+            download_google_url(self.google_id, self.raw_dir, "uat.zip")
         with zipfile.ZipFile(self.raw_paths[0], 'r') as f:
             f.extractall(self.raw_dir)
-        shutil.move(os.path.join(self.raw_dir, "wiki/wiki_adj.npy"), os.path.join(self.raw_dir, "wiki_adj.npy"))
-        shutil.move(os.path.join(self.raw_dir, "wiki/wiki_feat.npy"), os.path.join(self.raw_dir, "wiki_feat.npy"))
-        shutil.move(os.path.join(self.raw_dir, "wiki/wiki_label.npy"), os.path.join(self.raw_dir, "wiki_label.npy"))
-        os.rmdir(os.path.join(self.raw_dir, "wiki"))
+            extracted_dir = os.path.join(self.raw_dir, "uat")
+            for filename in os.listdir(extracted_dir):
+                shutil.move(os.path.join(extracted_dir, filename), self.raw_dir)
+            shutil.rmtree(extracted_dir)
+            
         
     @property
     def raw_file_names(self) -> str:
-        return ["wiki.zip", "wiki_adj.npy", "wiki_feat.npy", "wiki_label.npy"]
+        return ["uat.zip", "uat_adj.npy", "uat_feat.npy", "uat_label.npy"]
     
     @property
     def processed_file_names(self) -> str:
-        return "wiki.pt"
+        return "uat.pt"
     
     def process(self) -> None:
-        X = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_feat.npy")).astype(np.float32), dtype=torch.float)
-        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_label.npy")), dtype=torch.long)
-        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "wiki_adj.npy")), dtype=torch.float)
+        X = torch.tensor(np.load(os.path.join(self.raw_dir, "uat_feat.npy")), dtype=torch.float)
+        Y = torch.tensor(np.load(os.path.join(self.raw_dir, "uat_label.npy")), dtype=torch.long)
+        adj = torch.tensor(np.load(os.path.join(self.raw_dir, "uat_adj.npy")), dtype=torch.float)
         
         adj_t = SparseTensor.from_dense(adj)
+
         
         data = GraphData(x=X, y=Y, edge_index=adj_t)
         
@@ -93,5 +95,3 @@ class WikiGraph(GraphDataset):
     def len(self) -> int:
         return 1
     
-
-

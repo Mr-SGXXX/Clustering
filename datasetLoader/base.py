@@ -252,9 +252,6 @@ class ClusteringDataset(Dataset):
         if self._unlabel_len is None:
             if self.unlabel_data is None:
                 self._unlabel_len = 0
-            else:
-                raise ValueError(
-                    "Directly use the `unlabel_length` or set `unlabel_data` first")
         return self._unlabel_len
 
     @property
@@ -268,6 +265,7 @@ class ClusteringDataset(Dataset):
             self._label_data, self._label = self.label_data_init()
             if isinstance(self._label, torch.Tensor):
                 self._label = self._label.to(dtype=torch.long)
+                self._label = self._label.cpu().detach().numpy()
             elif isinstance(self._label, np.ndarray):
                 self._label = self._label.astype(np.int64)
             if self._label_data is not None:
@@ -281,7 +279,12 @@ class ClusteringDataset(Dataset):
                         self._input_dim = self._input_dim[0]
                 else:
                     assert self._input_dim == self._label_data.shape[1:] if type(self._input_dim) is list else self._input_dim == self._label_data.shape[1], "The shape of the data should be the same as the input dim"
-        return self._label_data
+        if isinstance(self._label_data, torch.Tensor) or isinstance(self._label_data, np.ndarray):
+            return torch.tensor(self._label_data)
+        elif self._label_data is None:
+            return None
+        else:
+            return torch.tensor(np.array([self._data_preprocess(raw_data) for raw_data in self._label_data]))
 
     @property
     def label(self) -> typing.Union[torch.Tensor, np.ndarray, None]:
@@ -301,6 +304,7 @@ class ClusteringDataset(Dataset):
         self._num_classes = None
         if isinstance(new_label, torch.Tensor):
             new_label = new_label.to(dtype=torch.long)
+            new_label = new_label.cpu().detach().numpy()
         elif isinstance(new_label, np.ndarray):
             new_label = new_label.astype(np.int64)
         self._label = new_label
@@ -329,14 +333,19 @@ class ClusteringDataset(Dataset):
                         self._input_dim = self._input_dim[0]
                 else:
                     assert self._input_dim == self._unlabel_data.shape[1:] if type(self._input_dim) is list else self._input_dim == self._unlabel_data.shape[1], "The shape of the data should be the same as the input dim"
-        return self._unlabel_data
+        if isinstance(self._unlabel_data, torch.Tensor) or isinstance(self._unlabel_data, np.ndarray):
+            return torch.tensor(self._unlabel_data)
+        elif self._unlabel_data is None:
+            return None
+        else:
+            return torch.tensor(np.array([self.data_preprocess(raw_data) for raw_data in self._unlabel_data]))
     
     @property
     def num_classes(self) -> int:
         """
         the number of classes in the dataset, int
         """
-        if self._num_classes is None:
+        if self._num_classes is None and self.label is not None:
             self._num_classes = len(np.unique(self.label))
         return self._num_classes
     
@@ -512,10 +521,10 @@ class Graph(GraphDataset):
         return edge_index, edge_weight
     
     def cal_distance(self, X):
-        if self.distance_type == "Cosine":
-            X_norm = X / np.linalg.norm(X, axis=1, keepdims=True)
-            dist = 1 - np.dot(X_norm, X_norm.T)
-        elif self.distance_type == "NormCos":
+        # if self.distance_type == "Cosine":
+        #     X_norm = X / np.linalg.norm(X, axis=1, keepdims=True)
+        #     dist = 1 - np.dot(X_norm, X_norm.T)
+        if self.distance_type == "NormCos":
             X_binary = np.where(X > 0, 1, 0)
             X_normalized = normalize(X_binary, axis=1, norm="l1")
             dist = 1 - np.dot(X_normalized, X_normalized.T)

@@ -36,11 +36,14 @@ import zipfile
 from datasetLoader.base import ClusteringDataset
 from utils import config
 
+from .utils import count_edges
+
 class Coauthor_Physics(ClusteringDataset):
     def __init__(self, cfg:config, needed_data_types:list) -> None:
         super().__init__(cfg, needed_data_types)
         
     def label_data_init(self) -> typing.Tuple[np.ndarray, np.ndarray]:
-        self._graph = Coauthor(root=self.data_dir, name="Physics").data
+        self._graph = Coauthor(root=self.data_dir, name="Physics")._data
         self._graph.edge_index = SparseTensor.from_edge_index(self._graph.edge_index)
+        self._graph.num_edges = count_edges(self._graph.edge_index)
         return self._graph.x.numpy(), self._graph.y.numpy()
