@@ -17,6 +17,7 @@ filelock==3.13.1
 fonttools==4.47.0
 frozenlist==1.4.1
 fsspec==2023.12.2
+gensim==4.3.3
 get-annotations==0.1.2
 gitdb==4.0.11
 GitPython==3.1.43
