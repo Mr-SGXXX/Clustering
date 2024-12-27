@@ -128,5 +128,8 @@ class Readout(nn.Module):
                 Z_tilde.append(torch.mean(Z[i:i + step], dim=0))
 
         # the cluster-level embedding
+        # In the official implementation, the code is:
         Z_tilde = torch.cat(Z_tilde, dim=0)
+        # the shape of this feature is (K * n_z), different from the paper description
+        # but we dicide to keep the official implementation code
         return Z_tilde.view(1, -1)

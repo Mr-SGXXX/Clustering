@@ -69,6 +69,7 @@ Pygments==2.18.0
 pynndescent==0.5.11
 pyparsing==3.1.1
 python-dateutil==2.8.2
+python-louvain==0.16
 pytz==2023.3.post1
 PyWavelets==1.4.1
 referencing==0.35.1

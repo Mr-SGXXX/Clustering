@@ -110,17 +110,25 @@ Notice that those muti-view clustering methods and GNN-based clustering methods 
 - [ ] [SpectralNet (ICLR 2018)](https://openreview.net/pdf?id=HJ_aoCyRZ) | [Reference Code](https://github.com/shaham-lab/SpectralNet) 
 - [ ] [DSC-Nets (NIPS 2017)](http://papers.neurips.cc/paper/6608-deep-subspace-clustering-networks.pdf) | [Reference Code](https://github.com/panji1990/Deep-subspace-clustering-networks)
 - [ ] [DEPICT (ICCV 2017)](https://arxiv.org/pdf/1704.06327.pdf) | [Reference Code](https://arxiv.org/pdf/1704.06327.pdf) 
-- [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Reference Code](https://github.com/XifengGuo/IDEC) | [My Implementation](./methods/deep/IDEC.py)
+- [x] [IDEC (IJCAI 2017)](https://www.researchgate.net/profile/Xifeng-Guo/publication/317095655_Improved_Deep_Embedded_Clustering_with_Local_Structure_Preservation/links/59263224458515e3d4537edc/Improved-Deep-Embedded-Clustering-with-Local-Structure-Preservation.pdf) | [Reference Code](https://github.com/XifengGuo/IDEC) | [My Implementation](./methods/deep/IDEC/IDEC.py)
   
 *In this method, most codes are the same as DEC, except the clustering process. Instead of only using KL loss, the IDEC adds the reconstruct loss in clustering process. Because the IDEC use the same pretrain process as the DEC, in order to save time, the IDEC will directly use the DEC pretrain weight*
 
 - [ ] [VaDE (IJCAI 2017)](https://arxiv.org/pdf/1611.05148.pdf) | [Reference Code](https://github.com/slim1017/VaDE) 
 - [ ] [DCN (ICML 2017)](https://arxiv.org/pdf/1610.04794.pdf) | [Reference Code](https://github.com/boyangumn/DCN-New) 
-- [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Reference Code](https://github.com/piiswrong/dec/tree/master) | [My Implementaion](./methods/deep/DEC.py)
+- [x] [DEC (ICML 2016)](https://arxiv.org/pdf/1511.06335.pdf) | [Reference Code](https://github.com/piiswrong/dec/tree/master) | [My Implementaion](./methods/deep/DEC/DEC.py)
 
 *In this method, the pretrain process is the most important part, whether the features are learned well by pretraining is directly correspond to whether the result is good. With a reproduced greedy layer-wise pretraining referred to the DEC paper, the pretrained weight is more likely to be good, by which the DEC method is more likely to gain a good score. Though the best score in many experimnets is no lower than the score in the article, the method is still not stable, scores of multiple experiments are very different.*
 
 - [ ] [JULE (CVPR 2016)](https://arxiv.org/pdf/1604.03628.pdf) | [Reference Code](https://github.com/jwyang/JULE.torch)
+
+### Graph Clustering Methods
+
+We have implemented more than 10 graph clustering methods, including the following methods:
+- [x] [DGI (arxiv 2018)](https://arxiv.org/abs/1809.10341) | [Reference Code](https://github.com/PetarV-/DGI) | [My Implementation](./methods/deep/graphs/DGI/DGI.py)
+
+
+**wait for update**
 
 
 ## Dataset

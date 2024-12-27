@@ -38,20 +38,21 @@ class Discriminator(nn.Module):
             if m.bias is not None:
                 m.bias.data.fill_(0.0)
 
-    def forward(self, c, h_pl, h_mi, s_bias1=None, s_bias2=None):
-        c_x = torch.unsqueeze(c, 1)
-        c_x = c_x.expand_as(h_pl)
+    def forward(self, c1, c2, h1, h2, h3, h4, s_bias1=None, s_bias2=None):
+        c_x1 = torch.unsqueeze(c1, 1)
+        c_x1 = c_x1.expand_as(h1).contiguous()
+        c_x2 = torch.unsqueeze(c2, 1)
+        c_x2 = c_x2.expand_as(h2).contiguous()
 
-        sc_1 = torch.squeeze(self.f_k(h_pl, c_x), 2)
-        sc_2 = torch.squeeze(self.f_k(h_mi, c_x), 2)
+        # positive
+        sc_1 = torch.squeeze(self.f_k(h2, c_x1), 2)
+        sc_2 = torch.squeeze(self.f_k(h1, c_x2), 2)
 
-        if s_bias1 is not None:
-            sc_1 += s_bias1
-        if s_bias2 is not None:
-            sc_2 += s_bias2
+        # negetive
+        sc_3 = torch.squeeze(self.f_k(h4, c_x1), 2)
+        sc_4 = torch.squeeze(self.f_k(h3, c_x2), 2)
 
-        logits = torch.cat((sc_1, sc_2), 1)
-
+        logits = torch.cat((sc_1, sc_2, sc_3, sc_4), 1)
         return logits
 
 # Applies an average on seq, of shape (batch, nodes, features)
@@ -65,20 +66,15 @@ class AvgReadout(nn.Module):
             return torch.mean(seq, 1)
         else:
             msk = torch.unsqueeze(msk, -1)
-            return torch.sum(seq * msk, 1) / torch.sum(msk)
+            # different from the original implementation of DGI, the implementation of MVGRL uses torch.mean instead of torch.sum
+            # return torch.sum(seq * msk, 1) / torch.sum(msk)
+            return torch.mean(seq * msk, 1) / torch.sum(msk)
 
 class GCN(nn.Module):
-    def __init__(self, in_ft, out_ft, act, bias=True):
+    def __init__(self, in_ft, out_ft, bias=True):
         super(GCN, self).__init__()
         self.fc = nn.Linear(in_ft, out_ft, bias=False)
-        if act == 'prelu':
-            self.act = nn.PReLU()
-        elif act == 'relu':
-            self.act = nn.ReLU()
-        elif self.act == 'selu':
-            self.act = nn.SELU()
-        else:
-            self.act = nn.ELU()
+        self.act = nn.PReLU()
         
         if bias:
             self.bias = nn.Parameter(torch.FloatTensor(out_ft))
@@ -99,7 +95,10 @@ class GCN(nn.Module):
     def forward(self, seq, adj, sparse=False):
         seq_fts = self.fc(seq)
         if sparse:
-            out = torch.unsqueeze(torch.spmm(adj, torch.squeeze(seq_fts, 0)), 0)
+            out_list = []
+            for i in range(seq_fts.shape[0]):
+                out_list.append(torch.unsqueeze(torch.spmm(adj[i], torch.squeeze(seq_fts[i], 0)), 0))
+            out = torch.cat(out_list, 0)
         else:
             out = torch.bmm(adj, seq_fts)
         if self.bias is not None:

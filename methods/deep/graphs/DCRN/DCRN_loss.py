@@ -80,8 +80,11 @@ def dicr_loss(Z_ae, Z_igae, AZ, Z, gamma_value):
     S_F_igae = cross_correlation(Z_igae[2].t(), Z_igae[3].t())
 
     # loss of FCR
+    # the official implementation code is:
     L_F_ae = correlation_reduction_loss(S_F_ae)
     L_F_igae = correlation_reduction_loss(S_F_igae)
+    # the shape of S_F_ae and S_F_igae is (n_z * K, n_z * K) different from the paper description which should be (n_z, n_z)
+    # but we dicide to keep the official implementation code
 
     L_N = 0.1 * L_N_ae + 5 * L_N_igae
     L_F = L_F_ae + L_F_igae
@@ -140,5 +143,8 @@ def r_loss(AZ, Z):
             q_output = F.softmax(Z[i][j], dim=1)
             log_mean_output = ((p_output + q_output) / 2).log()
             loss += (F.kl_div(log_mean_output, p_output, reduction='batchmean') +
-                     F.kl_div(log_mean_output, p_output, reduction='batchmean')) / 2
+                     # in official implementation, it was:
+                     #  F.kl_div(log_mean_output, p_output, reduction='batchmean')) / 2
+                     #  which is not the JSD Div loss, it should be:
+                     F.kl_div(log_mean_output, q_output, reduction='batchmean')) / 2
     return loss

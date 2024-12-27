@@ -49,26 +49,28 @@ from utils.metrics import evaluate
 from utils import config
 from methods.deep.base import DeepMethod
 
-from .DGI_model import DGI_Net, LogReg
-from .DGI_utils import preprocess_features, normalize_adj, sparse_mx_to_torch_sparse_tensor
+from .MVGRL_model import Model, LogReg
+from .MVGRL_utils import preprocess_features, normalize_adj, sparse_mx_to_torch_sparse_tensor, compute_ppr, compute_heat
 # This method reproduction refers to the following repository:
-# https://github.com/PetarV-/DGI
-# DGI is a representation learning method that aims to learn a good representation of the graph data.
+# https://github.com/kavehhassani/mvgrl
+# MVGRL is a representation learning method that aims to learn a good representation of the graph data.
 # In this project, the learned representation will be input to kmeans clustering algorithm to cluster the data.
 
-class DGI(DeepMethod):
+class MVGRL(DeepMethod):
     def __init__(self, dataset: ClusteringDataset, description: str, logger: Logger, cfg: config):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
-        self.nb_epochs = cfg.get("DGI", "nb_epochs")
-        self.patience = cfg.get("DGI", "patience")
-        self.lr = cfg.get("DGI", "learn_rate")
-        self.l2_coef = cfg.get("DGI", "l2_coef")
-        self.hid_units = cfg.get("DGI", "hid_units")
-        self.nonlinearity = cfg.get("DGI", "nonlinearity")
+        self.nb_epochs = cfg.get("MVGRL", "nb_epochs")
+        self.patience = cfg.get("MVGRL", "patience")
+        self.lr = cfg.get("MVGRL", "learn_rate")
+        self.l2_coef = cfg.get("MVGRL", "l2_coef")
+        self.hid_units = cfg.get("MVGRL", "hid_units")
+        self.sample_size = cfg.get("MVGRL", "sample_size")
+        self.batch_size = cfg.get("MVGRL", "batch_size")
+        self.diffusion_type = cfg.get("MVGRL", "diffusion_type")
         
     def clustering(self):
-        self.weight_dir = os.path.join(self.weight_dir, "DGI")
+        self.weight_dir = os.path.join(self.weight_dir, "MVGRL")
         self.dataset.use_label_data()
         graph:GraphData = self.dataset.to_graph(distance_type="NormCos", k=3)
         adj = graph.edge_index.to_torch_sparse_coo_tensor()
@@ -76,17 +78,25 @@ class DGI(DeepMethod):
         values = adj.coalesce().values().cpu().numpy()
         shape = adj.size()
         adj = sp.csr_matrix((values, indices), shape=shape)
-        features = preprocess_features(graph.x).unsqueeze(0).to(self.device)
+        features = preprocess_features(graph.x).to(self.device)
         
-        nb_nodes = features.shape[1]
+        if self.diffusion_type == "heat":
+            diff = compute_heat(adj.toarray())
+        elif self.diffusion_type == "ppr":
+            diff = compute_ppr(adj.toarray())
+        else:
+            raise NotImplementedError("Unknown diffusion type")
+        adj = normalize_adj(adj + sp.eye(adj.shape[0])).toarray()
         
-        adj = normalize_adj(adj + sp.eye(adj.shape[0]))
+        adj_tensor = sparse_mx_to_torch_sparse_tensor(sp.coo_matrix(adj)).to(self.device)
+        diff_tensor = sparse_mx_to_torch_sparse_tensor(sp.coo_matrix(diff)).to(self.device)
         
-        adj = sparse_mx_to_torch_sparse_tensor(adj).to(self.device)
-        
-        model:DGI_Net = DGI_Net(self.input_dim, self.hid_units, self.nonlinearity).to(self.device)
-        
+        model:Model = Model(self.input_dim, self.hid_units).to(self.device)
         optimiser = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.l2_coef)
+        
+        lbl_1 = torch.ones(self.batch_size, self.sample_size * 2).to(self.device)
+        lbl_2 = torch.zeros(self.batch_size, self.sample_size * 2).to(self.device)
+        lbl = torch.cat((lbl_1, lbl_2), 1)
         
         b_xent = nn.BCEWithLogitsLoss()
         
@@ -96,18 +106,19 @@ class DGI(DeepMethod):
         
         with tqdm(range(self.nb_epochs), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
+                
+                idx = np.random.randint(0, adj.shape[-1] - self.sample_size + 1, self.batch_size)           
+                ba = torch.cat([sparse_mx_to_torch_sparse_tensor(sp.coo_matrix(adj[i: i + self.sample_size, i: i + self.sample_size])).unsqueeze(0) for i in idx]).to(self.device)
+                bd = torch.cat([sparse_mx_to_torch_sparse_tensor(sp.coo_matrix(diff[i: i + self.sample_size, i: i + self.sample_size])).unsqueeze(0) for i in idx]).to(self.device)
+                bf = torch.cat([features[i: i + self.sample_size].unsqueeze(0) for i in idx])
+            
+                idx = np.random.permutation(self.sample_size)
+                shuf_fts = bf[:, idx, :]
+                 
                 model.train()
                 optimiser.zero_grad()
 
-                idx = np.random.permutation(nb_nodes)
-                shuf_fts = features[:, idx, :]
-
-                lbl_1 = torch.ones(1, nb_nodes).to(self.device)
-                lbl_2 = torch.zeros(1, nb_nodes).to(self.device)
-                lbl = torch.cat((lbl_1, lbl_2), 1)
-                
-
-                logits = model(features, shuf_fts, adj, True, None, None, None) 
+                logits, _, _ = model(bf, shuf_fts, ba, bd, True, None, None, None) 
 
                 loss = b_xent(logits, lbl)
                 
@@ -129,7 +140,7 @@ class DGI(DeepMethod):
                     break
                 
                 model.eval()
-                h = model.embed(features, adj, True, None)[0].squeeze(0).cpu().detach().numpy()
+                h = model.embed(features, adj_tensor, diff_tensor, True, None)[0].squeeze(0).cpu().detach().numpy()
                 y_pred = KMeans(n_clusters=self.n_clusters, random_state=self.cfg["global"]["seed"]).fit_predict(h)
                 model.train()
                 
@@ -149,10 +160,9 @@ class DGI(DeepMethod):
                 })
                 
                 
-        
         model.load_state_dict(torch.load(os.path.join(self.weight_dir, "best_dgi.pkl")))
         model.eval()
-        h = model.embed(features, adj, True, None)[0].squeeze(0).cpu().detach().numpy()
+        h = model.embed(features, adj_tensor, diff_tensor, True, None)[0].squeeze(0).cpu().detach().numpy()
         y_pred = KMeans(n_clusters=self.n_clusters, random_state=self.cfg["global"]["seed"]).fit_predict(h)
         
         if self.cfg.get("global", "record_sc"):

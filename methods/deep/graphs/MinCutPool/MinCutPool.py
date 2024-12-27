@@ -51,6 +51,9 @@ from methods.deep.base import DeepMethod
 
 # This method reproduction refers to the following repository:
 # https://github.com/google-research/google-research/tree/master/graph_embedding/dmon
+# this implementation refers to the implementation in DMoN
+
+from .MinCutPool_gcn import GCN_skip
 
 class MinCutPool(DeepMethod):
     def __init__(self, dataset: ClusteringDataset, description: str, logger: Logger, cfg: config):
@@ -66,7 +69,7 @@ class MinCutPool(DeepMethod):
         self.gcns = nn.ModuleList()
         input_dim = self.input_dim
         for hidden_dim in self.hidden_dims:
-            self.gcns.append(GCNConv(input_dim, hidden_dim))
+            self.gcns.append(GCN_skip(input_dim, hidden_dim))
             input_dim = hidden_dim
             
         self.classify_linear = nn.Linear(input_dim, self.n_clusters)
@@ -128,7 +131,7 @@ class MinCutPool(DeepMethod):
         for gcn in self.gcns:
             x = F.selu(gcn(x, edge_index))
         s = self.classify_linear(x)
-        s = F.softmax(s, dim=-1)
         _, _, mincut_loss, ortho_loss = dense_mincut_pool(x, edge_index.to_dense(), s)
+        s = F.softmax(s, dim=-1)
         return x, s, mincut_loss, ortho_loss
         

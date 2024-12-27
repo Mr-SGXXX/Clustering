@@ -28,7 +28,11 @@ from .CC import CC
 from .DivClust import DivClust
 from .IIC import IIC
 from .graphs.node2vec import node2vec
+from .graphs.GRACE_2017 import GRACE as GRACE_2017
+from .graphs.DiffPool import DiffPool
 from .graphs.DGI import DGI
+from .graphs.GRACE_2020 import GRACE as GRACE_2020
+from .graphs.MVGRL import MVGRL
 from .graphs.SDCN import SDCN
 from .graphs.DFCN import DFCN
 from .graphs.S3GC import S3GC
@@ -37,6 +41,7 @@ from .graphs.DGCluster import DGCluster
 from .graphs.DCRN import DCRN
 from .graphs.DMoN import DMoN
 from .graphs.MinCutPool import MinCutPool
+from .graphs.MGCN import MGCN
 
 """
 The Dictionary of Deep clustering methods
@@ -75,10 +80,38 @@ DEEP_METHODS = {
     
     
     # Graph Clustering methods
+    # Grover A, Leskovec J.
+    # node2vec: Scalable feature learning for networks[C]
+    # Proceedings of the 22nd ACM SIGKDD international conference on Knowledge discovery and data mining. 2016: 855-864.
+    # https://dl.acm.org/doi/abs/10.1145/2939672.2939754
     "node2vec": node2vec,
-    
+    # Yang C, Liu M, Wang Z, et al.
+    # Graph clustering with dynamic embedding[J].
+    # arXiv preprint arXiv:1712.08249, 2017.
+    # https://arxiv.org/abs/1712.08249
+    "GRACE_2017": GRACE_2017,
+    # Ying Z, You J, Morris C, et al.
+    # Hierarchical graph representation learning with differentiable pooling[J].
+    # Advances in neural information processing systems, 2018, 31.
+    # https://proceedings.neurips.cc/paper_files/paper/2018/hash/e77dbaf6759253c7c6d0efc5690369c7-Abstract.html
+    "DiffPool": DiffPool,    
+    # Veličković P, Fedus W, Hamilton W L, et al.
+    # Deep graph infomax[J].
+    # arXiv preprint arXiv:1809.10341, 2018.
+    # https://arxiv.org/abs/1809.10341
     "DGI": DGI,
-    # Bo D, Wang X, Shi C, et al. Structural deep clustering network
+    # Zhu Y, Xu Y, Yu F, et al.
+    # Deep graph contrastive representation learning[J].
+    # arXiv preprint arXiv:2006.04131, 2020.
+    # https://arxiv.org/abs/2006.04131
+    "GRACE_2020": GRACE_2020,
+    # Hassani K, Khasahmadi A H. 
+    # Contrastive multi-view representation learning on graphs[C]
+    # International conference on machine learning. PMLR, 2020: 4116-4126.
+    # https://proceedings.mlr.press/v119/hassani20a.html
+    "MVGRL": MVGRL,
+    # Bo D, Wang X, Shi C, et al.
+    # Structural deep clustering network
     # Proceedings of the web conference 2020. 2020: 1400-1410.
     # https://dl.acm.org/doi/abs/10.1145/3366423.3380214
     "SDCN": SDCN,
@@ -97,12 +130,21 @@ DEEP_METHODS = {
     # Proceedings of the AAAI conference on artificial intelligence. 2022, 36(7): 7603-7611.
     # https://ojs.aaai.org/index.php/AAAI/article/view/20726/20485
     "DCRN": DCRN,
+    # Devvrit F, Sinha A, Dhillon I, et al.
+    # S3GC: scalable self-supervised graph clustering[J].
+    # Advances in Neural Information Processing Systems, 2022, 35: 3248-3261.
+    # https://proceedings.neurips.cc/paper_files/paper/2022/file/15972a9575e0f03bf82f00aebeb40774-Paper-Conference.pdf
+    "S3GC": S3GC,
     # Tsitsulin A, Palowitch J, Perozzi B, et al.
     # Graph clustering with graph neural networks[J].
     # Journal of Machine Learning Research, 2023, 24(127): 1-21.
     # https://www.jmlr.org/papers/volume24/20-998/20-998.pdf
     "DMoN": DMoN,
-    "S3GC": S3GC,
+    # Li X, Wu W, Zhang B, et al.
+    # Multi-scale Graph Clustering Network[J].
+    # Information Sciences, 2024: 121023.
+    # https://www.sciencedirect.com/science/article/pii/S002002552400937X
+    "MGCN": MGCN,
     # Bhowmick A, Kosan M, Huang Z, et al. 
     # DGCLUSTER: A Neural Framework for Attributed Graph Clustering via Modularity Maximization
     # Proceedings of the AAAI Conference on Artificial Intelligence. 2024, 38(10): 11069-11077.
@@ -126,15 +168,21 @@ DEEP_METHODS_INPUT_TYPES = {
     "DeepCluster": ["img"],
     "DEC": ["seq"],
     "IDEC": ["seq"],
+    
     # Graph Clustering methods
     "node2vec": ["seq"],
+    "GRACE_2017": ["seq"],
+    "DiffPool": ["seq"],
     "DGI": ["seq"],
+    "GRACE_2020": ["seq"],
+    "MVGRL": ["seq"],
     "SDCN": ["seq"],
     "MinCutPool": ["seq"],
     "DFCN": ["seq"],
     "DCRN": ["seq"],
     "DMoN": ["seq"],
     "S3GC": ["seq"],
+    "MGCN": ["seq"],
+    "DGCluster": ["seq"],
     "MAGI": ["seq"],
-    "DGCluster": ["seq"]
 }
