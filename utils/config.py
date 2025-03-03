@@ -64,6 +64,13 @@ class config:
     
     def sections(self):
         return self.cfg.sections()
+
+    def add_section(self, section:str):
+        """
+        Add a new section to the configuration file.
+        :param section: str, section name
+        """
+        self.cfg.add_section(section)
     
     def set(self, session:str=None, option:str=None, value:typing.Any=None):
         """
@@ -72,6 +79,10 @@ class config:
         :param option: str, option name
         :param value: typing.Any, value of the option
         """
+        if isinstance(value, list):
+            value = self.split_symbol.join([str(v) for v in value])
+        else:
+            value = str(value)
         self.cfg.set(session, option, value)
 
     def get(self, session:str=None, option:str=None, default:typing.Any=None):
@@ -81,6 +92,8 @@ class config:
         :param option: str, option name
         """
         def is_float(str_data:str):
+            if str_data.startswith('-'):
+                str_data = str_data[1:]
             if '.' in str_data:
                 parts = str_data.split('.')
                 if len(parts) == 2 and (parts[0].isdigit() or parts[0] == '') and (parts[1].isdigit() or parts[1] == ''):
@@ -91,17 +104,19 @@ class config:
                     return True
             return False
         
-        def is_int(str_data):
+        def is_int(str_data:str):
+            if str_data.startswith('-'):
+                str_data = str_data[1:]
             if str_data.isdigit():
                 return True
             return False
         
-        def is_None(str_data):
+        def is_None(str_data:str):
             if str_data == "None":
                 return True
             return False
         
-        def is_Bool(str_data):
+        def is_Bool(str_data:str):
             if str_data == "True" or str_data == "False":
                 return True
             return False
@@ -146,6 +161,8 @@ class config:
     
     def __add__(self, other):
         for section in other.cfg.sections():
+            if not self.cfg.has_section(section):
+                self.add_section(section)
             for option in other.cfg.options(section):
                 self.set(section, option, other.get(section, option))
         return self

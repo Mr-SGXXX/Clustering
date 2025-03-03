@@ -37,10 +37,8 @@ from methods import *
 warnings.filterwarnings("ignore")
 
 
-def main():
+def main(cfg):
     # initialize the configuration
-    cfg = get_args()
-    make_dir(cfg)
     start_time = time.time()
     description = (
         cfg.get("global", "description")
@@ -205,4 +203,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cfg = get_args()
+    make_dir(cfg)
+    for run_time in range(cfg.get("global", "run_times")):
+        print(f"Run Time: {run_time+1}")
+        main(cfg)

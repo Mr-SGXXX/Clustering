@@ -46,17 +46,40 @@ def get_args():
     parser.add_argument('-d', "--device", default=None, help="Device to run the code")
     args = parser.parse_args()
     cfg = config.init_by_path(args.config_path, split_symbol=args.split_symbol)
+    config_path = os.path.dirname(args.config_path)
     if args.device is not None:
         cfg.set("global", "device", args.device)
     if cfg.get("global", "method_name") not in cfg.sections():
+        extra_method_cfg = config.init_by_path(os.path.join(config_path, f"{cfg.get('global', 'method_name')}.cfg"), split_symbol=args.split_symbol)
         for method_type in ["deep", "classical", "demo"]:
-            extra_method_cfg = config.init_by_path(f"methods/{method_type}/{cfg.get('global', 'method_name')}/{cfg.get('global', 'method_name')}.cfg", split_symbol=args.split_symbol)
             if extra_method_cfg is not None:
                 break
+            if extra_method_cfg is None:
+                extra_method_cfg = config.init_by_path(f"methods/{method_type}/{cfg.get('global', 'method_name')}/{cfg.get('global', 'method_name')}.cfg", split_symbol=args.split_symbol)
+            if extra_method_cfg is None:
+                extra_method_cfg = config.init_by_path(f"methods/{method_type}/graphs/{cfg.get('global', 'method_name')}/{cfg.get('global', 'method_name')}.cfg", split_symbol=args.split_symbol)
+            
         if extra_method_cfg is not None:
             cfg += extra_method_cfg
         else:
-            raise ValueError(f"Method {cfg.get('global', 'method_name')} config section does not exist. Please check the configuration file.")
+            cfg.add_section(cfg.get("global", "method_name"))
+            # raise ValueError(f"Method {cfg.get('global', 'method_name')} config section does not exist. Please check the configuration file.")
+    
+    if cfg.get("global", "dataset") not in cfg.sections():
+        extra_dataset_cfg = config.init_by_path(os.path.join(config_path, f"{cfg.get('global', 'dataset')}.cfg"), split_symbol=args.split_symbol)
+        for dataset_type in ["img", "seq"]:
+            if extra_dataset_cfg is not None:
+                break
+            if extra_dataset_cfg is None:
+                extra_dataset_cfg = config.init_by_path(f"datasetLoder/{dataset_type}/{cfg.get('global', 'dataset')}/{cfg.get('global', 'dataset')}.cfg", split_symbol=args.split_symbol)
+            if extra_dataset_cfg is None:
+                extra_dataset_cfg = config.init_by_path(f"datasetLoader/{dataset_type}/graphs/{cfg.get('global', 'dataset')}/{cfg.get('global', 'dataset')}.cfg", split_symbol=args.split_symbol)
+        
+        if extra_dataset_cfg is not None:
+            cfg += extra_dataset_cfg
+        else:
+            cfg.add_section(cfg.get("global", "dataset"))
+            # raise ValueError(f"Dataset {cfg.get('global', 'dataset')} config section does not exist. Please check the configuration file.")
     return cfg
 
 def seed_init(seed:typing.Union[None, int]=None):
@@ -64,14 +87,15 @@ def seed_init(seed:typing.Union[None, int]=None):
     Set random seed.
     :param seed: int, random seed, if None, do not set random seed
     """
-    if seed is not None:
-        os.environ['PYTHONHASHSEED'] = str(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    if seed is None:
+        seed = random.randint(1, 1000000)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def make_dir(cfg:config):
     """

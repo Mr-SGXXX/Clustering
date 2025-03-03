@@ -4,19 +4,23 @@ figures/*
 result/*
 weight/*
 data/*
+methods/demo/*
 .temp/*
 ./*.xls
 others
 
-cfg/email.cfg
+cfg/*
 .vscode/launch.json
 
 result/experiments.db
 
+!cfg/example.cfg
 
 !data/Reuters10K/reutersidf10k.npy
 !data/ImageNet-10
 !data/ImageNet-Dogs
+
+!methods/demo/__init__.py
 
 !weight/EDESC_reuters.pkl
 !weight/DEC_mnist_ae_weights.h5

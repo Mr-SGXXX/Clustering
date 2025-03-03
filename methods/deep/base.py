@@ -28,6 +28,10 @@ from datasetLoader import ClusteringDataset
 
 
 class DeepMethod(nn.Module):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.class_name = cls.__name__
+
     def __init__(self, dataset: ClusteringDataset, description: str, logger: Logger, cfg: config):
         super().__init__()
         self.dataset = dataset

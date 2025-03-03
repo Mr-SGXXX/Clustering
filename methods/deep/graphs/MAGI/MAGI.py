@@ -31,6 +31,7 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.data import Data as GraphData
 from torch_geometric.utils import to_undirected, add_remaining_self_loops
 from torch import optim
+from time import time
 from sklearn.cluster import KMeans
 from sklearn.cluster import SpectralClustering
 from tqdm import tqdm
@@ -59,7 +60,7 @@ class MAGI(DeepMethod):
         self.hidden_dims = cfg.get("MAGI", "hidden_dims")
         self.hidden_dims = [self.hidden_dims] if not isinstance(self.hidden_dims, list) else self.hidden_dims
         self.projection_dims = cfg.get("MAGI", "projection_dims")
-        self.sizes_neighbor = cfg.get("MAGI", "sizes_neighbor")
+        self.sizes_neighbor = cfg.get("MAGI", "sizes_neighbor", default=[10, 10])
         self.wt = cfg.get("MAGI", "wt") # number of random walks
         self.wl = cfg.get("MAGI", "wl") # depth of random walks
         self.tau = cfg.get("MAGI", "tau") # temperature
@@ -68,10 +69,11 @@ class MAGI(DeepMethod):
         self.weight_decay = cfg.get("MAGI", "weight_decay")
         self.epochs = cfg.get("MAGI", "epochs")
         self.batch_size = cfg.get("MAGI", "batch_size")
-        self.kmeans_batch = cfg.get("MAGI", "kmeans_batch")
+        self.kmeans_batch = cfg.get("MAGI", "kmeans_batch", default=-1)
         self.negative_slope = cfg.get("MAGI", "negative_slope") # negative slope of leaky relu
         self.clustering_method = cfg.get("MAGI", "clustering_method") # clustering method for representation
-         
+        self.max_duration = cfg.get("Graph1", "max_duration")
+        self.kmeans_device = cfg.get("MAGI", "kmeans_device", default="cpu")
         
         
     def clustering(self):
@@ -90,7 +92,7 @@ class MAGI(DeepMethod):
         encoder = Encoder(self.dataset.input_dim, hidden_channels=self.hidden_dims, base_model=self.base_model, dropout=self.dropout, ns=self.negative_slope)
         encoder = encoder.to(self.device)
         
-        model = Model(encoder, self.hidden_dims[-1], self.projection_dims, self.tau).to(self.device)
+        model = Model(encoder, self.hidden_dims[-1], self.projection_dims, tau=self.tau).to(self.device)
         
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         
@@ -114,6 +116,8 @@ class MAGI(DeepMethod):
                                             shuffle=False,
                                             drop_last=False,
                                             num_workers=self.workers)
+            ts_train = time()
+            stop_pos = False
             with tqdm(range(1, self.epochs+1), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
                 for epoch in epoch_loader:
                     model.train()
@@ -135,9 +139,14 @@ class MAGI(DeepMethod):
                         optimizer.step()
                         total_loss += loss.item()
                         total_examples += batch_size
+                        if (time.time() - ts_train) // 60 >= self.max_duration:
+                            self.logger.info(f"Maximum training time is exceeded at epoch {epoch}.")
+                            stop_pos = True
+                            break
                     if epoch % 5 == 1:
                         self.logger.info(f"Epoch {epoch}/{self.epochs} Loss: {total_loss/total_examples}")
-            
+                    if stop_pos:
+                        break
             with torch.no_grad():
                 model.eval()
                 z = []
@@ -151,6 +160,9 @@ class MAGI(DeepMethod):
                 z = F.normalize(z, p=2, dim=1)
                 
         elif self.base_model == "GCN":
+            # in the official implementation, the edge_index used in gcn is:
+            # edge_index = data.edge_index.to(device)
+            # where data is the orginal graph data
             edge_index = graph.edge_index.to_torch_sparse_coo_tensor().coalesce().indices().to(self.device)
             batch = torch.LongTensor(list(range(N)))
             batch, adj_batch = get_sim(batch, adj, wt=self.wt, wl=self.wl)
@@ -181,12 +193,14 @@ class MAGI(DeepMethod):
             raise NotImplementedError(f"Clustering with base model {self.base_model} is not implemented.")
     
         if self.clustering_method == "KMeans":
-            if self.device == "cpu":
+            if self.kmeans_device == "cpu":
                 Cluster = KMeans(n_clusters=self.n_clusters, max_iter=10000, n_init=20)
                 y_pred = Cluster.fit_predict(z.data.cpu().numpy())
-            else:
+            elif self.kmeans_device == "gpu":
                 y_pred, _ = kmeans(z, self.n_clusters, batch_size=self.kmeans_batch, device=self.device, tol=1e-4)
                 y_pred = y_pred.cpu().numpy()
+            else:
+                raise NotImplementedError(f"Kmeans device {self.kmeans_device} is not implemented.")
         elif self.clustering_method == "SpectralClustering":
             Cluster = SpectralClustering(
             n_clusters=self.n_clusters, affinity='precomputed', random_state=0)
