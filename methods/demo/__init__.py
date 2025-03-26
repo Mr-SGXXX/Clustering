@@ -17,25 +17,29 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-try:
-    from .Graph1 import Graph1, Graph2
-    # from .Graph1 import Graph2 as Graph1
-    
-    MY_METHODS = {
-        "Graph1" : Graph1,
-        "Graph2" : Graph2
-    }
 
-    MY_METHODS_TYPE_FLAG = {
-        "Graph1" : "deep",
-        "Graph2" : "deep"
-    }
+# try:
+from .Graph1 import Graph1, Graph2, Graph3
+# from .Graph1 import Graph2 as Graph1
 
-    MY_METHODS_INPUT_TYPES = {
-        "Graph1" : ["img", "seq"],
-        "Graph2" : ["img", "seq"]
-    }
-except:
-    MY_METHODS = {}
-    MY_METHODS_TYPE_FLAG = {}
-    MY_METHODS_INPUT_TYPES = {}
+MY_METHODS = {
+    "Graph1" : Graph1,
+    "Graph2" : Graph2,
+    "Graph3" : Graph3
+}
+
+MY_METHODS_TYPE_FLAG = {
+    "Graph1" : "deep",
+    "Graph2" : "deep",
+    "Graph3" : "deep"
+}
+
+MY_METHODS_INPUT_TYPES = {
+    "Graph1" : ["img", "seq"],
+    "Graph2" : ["img", "seq"],
+    "Graph3" : ["img", "seq"]
+}
+# except:
+#     MY_METHODS = {}
+#     MY_METHODS_TYPE_FLAG = {}
+#     MY_METHODS_INPUT_TYPES = {}

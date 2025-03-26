@@ -70,7 +70,7 @@ class MVGRL(DeepMethod):
         self.diffusion_type = cfg.get("MVGRL", "diffusion_type")
         
     def clustering(self):
-        self.weight_dir = os.path.join(self.weight_dir, "MVGRL")
+        self.weight_dir = os.path.join(self.weight_dir, "MVGRL", self.description)
         self.dataset.use_label_data()
         graph:GraphData = self.dataset.to_graph(distance_type="NormCos", k=3)
         adj = graph.edge_index.to_torch_sparse_coo_tensor()

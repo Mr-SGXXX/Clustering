@@ -72,7 +72,7 @@ class MAGI(DeepMethod):
         self.kmeans_batch = cfg.get("MAGI", "kmeans_batch", default=-1)
         self.negative_slope = cfg.get("MAGI", "negative_slope") # negative slope of leaky relu
         self.clustering_method = cfg.get("MAGI", "clustering_method") # clustering method for representation
-        self.max_duration = cfg.get("Graph1", "max_duration")
+        self.max_duration = cfg.get("MAGI", "max_duration")
         self.kmeans_device = cfg.get("MAGI", "kmeans_device", default="cpu")
         
         

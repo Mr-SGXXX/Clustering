@@ -44,15 +44,14 @@ METHODS_INPUT_TYPES = {
         “Your Method Name” : ["input_type1 (seq)", "input_type2 (img)", ...]
     }
 """
-try:
-    from .demo import *
-    for method in MY_METHODS:
-        if MY_METHODS_TYPE_FLAG[method] == "deep":
-            DEEP_METHODS[method] = MY_METHODS[method]
-        elif MY_METHODS_TYPE_FLAG[method] == "classical":
-            CLASSICAL_METHODS[method] = MY_METHODS[method]
-        else:
-            raise ValueError("The method type should be either 'deep' or 'classical'")
-    METHODS_INPUT_TYPES = {**METHODS_INPUT_TYPES, **MY_METHODS_INPUT_TYPES}
-except:
-    pass
+
+from .demo import *
+for method in MY_METHODS:
+    if MY_METHODS_TYPE_FLAG[method] == "deep":
+        DEEP_METHODS[method] = MY_METHODS[method]
+    elif MY_METHODS_TYPE_FLAG[method] == "classical":
+        CLASSICAL_METHODS[method] = MY_METHODS[method]
+    else:
+        raise ValueError("The method type should be either 'deep' or 'classical'")
+METHODS_INPUT_TYPES = {**METHODS_INPUT_TYPES, **MY_METHODS_INPUT_TYPES}
+

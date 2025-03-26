@@ -155,26 +155,28 @@ def gen_tsne(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndar
         df_tsne['label2'] = [chr(l + ord('a')) for l in pred_labels]
     df_tsne.head()
     plt.figure(figsize=(15, 9))
+    plt.subplots_adjust(left=0.1, bottom=0.15)
     if true_labels is None and pred_labels is None:
         sns.scatterplot(data=df_tsne, x='Dim1', y='Dim2')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     elif true_labels is not None and pred_labels is None:
         sns.scatterplot(data=df_tsne, hue='label1', x='Dim1', y='Dim2')
         plt.title('Pretrain Ground Truth Label TSNE')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     elif true_labels is None and pred_labels is not None:
         sns.scatterplot(data=df_tsne, hue='label2', x='Dim1', y='Dim2')
         plt.title('Predicted Label TSNE')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     else:
         plt.subplot(1, 2, 1)
         sns.scatterplot(data=df_tsne, hue='label1', x='Dim1', y='Dim2')
         plt.title('Ground Truth Label TSNE')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
         plt.subplot(1, 2, 2)
         sns.scatterplot(data=df_tsne, hue='label2', x='Dim1', y='Dim2')
         plt.title('Predicted Label TSNE')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
+    plt.tight_layout()
     plt.savefig(path)
 
 
@@ -191,26 +193,28 @@ def gen_umap(features: np.ndarray, true_labels: np.ndarray, pred_labels: np.ndar
         df_umap['label2'] = [chr(l + ord('a')) for l in pred_labels]
     df_umap.head()
     plt.figure(figsize=(15, 9))
+    plt.subplots_adjust(left=0.1, bottom=0.15)
     if true_labels is None and pred_labels is None:
         sns.scatterplot(data=df_umap, x='Dim1', y='Dim2')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     elif true_labels is not None and pred_labels is None:
         sns.scatterplot(data=df_umap, hue='label1', x='Dim1', y='Dim2')
         plt.title('Ground Truth Label UMAP')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     elif true_labels is None and pred_labels is not None:
         sns.scatterplot(data=df_umap, hue='label2', x='Dim1', y='Dim2')
         plt.title('Predicted Label UMAP')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     else:
         plt.subplot(1, 2, 1)
         sns.scatterplot(data=df_umap, hue='label1', x='Dim1', y='Dim2')
         plt.title('Ground Truth Label UMAP')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
         plt.subplot(1, 2, 2)
         sns.scatterplot(data=df_umap, hue='label2', x='Dim1', y='Dim2')
         plt.title('Predicted Label UMAP')
-        plt.legend(loc='best')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
+    plt.tight_layout()
     plt.savefig(path)
 
 
@@ -242,16 +246,18 @@ def gen_pretrain_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     epochs = list(range(1, len(losses_list[0]) + 1))
     plt.figure(figsize=figsize)
+    plt.subplots_adjust(left=0.1, bottom=0.15)
     for i in range(len(losses_list)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
     plt.ylim(min([min(losses) for losses in losses_list]), max([max(losses) for losses in losses_list]) * 1.1)
-    plt.legend(loc='best')
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Pretrain Loss Chart", fontsize=14)
     plt.xlabel("Epoch", fontsize=12)
     plt.ylabel("Loss", fontsize=12)
+    plt.tight_layout()
     plt.savefig(path)
 
 
@@ -260,16 +266,19 @@ def gen_loss_chart(losses_list, loss_names, path, figsize=(10, 6)):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     epochs = list(range(1, len(losses_list[0]) + 1))
     plt.figure(figsize=figsize)
+    
+    plt.subplots_adjust(left=0.1, bottom=0.15)
     for i in range(len(losses_list)):
         plt.plot(epochs, losses_list[i], color=colors[i],
                  linewidth=2, label=loss_names[i])
     plt.xlim(1, int(len(losses_list[0]) * 1.1))
     plt.ylim(min([min(losses) for losses in losses_list]), max([max(losses) for losses in losses_list]) * 1.1)
-    plt.legend(loc='best')
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.title("Clustering Loss Chart", fontsize=14)
     plt.xlabel("Epoch", fontsize=12)
     plt.ylabel("Loss", fontsize=12)
+    plt.tight_layout()
     plt.savefig(path)
 
 
@@ -277,6 +286,7 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
     # Generate clustering loss and evaluation metrics chart
     epochs = list(range(1, len(loss_list) + 1))
     fig, ax1 = plt.subplots(figsize=figsize)
+    plt.subplots_adjust(left=0.1, bottom=0.15)
 
     plt.xlim(1, int(len(loss_list) * 1.1))
     # Plotting for ax1
@@ -323,10 +333,11 @@ def gen_clustering_chart_metrics_score(loss_list, score_dict, path, figsize=(10,
 
     # Combine legends from both axes
     labels = [l.get_label() for l in lines]
-    plt.legend(lines, labels, loc='best')
+    plt.legend(lines, labels, loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=6)
 
     plt.title("Clustering Loss and Evaluation Metrics Chart", fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
     plt.savefig(path)
 
 
