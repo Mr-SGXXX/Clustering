@@ -200,6 +200,7 @@ def main(cfg):
             )
         print(f"Experiment: {description} failed...")
         raise e
+    del logger
 
 
 if __name__ == "__main__":

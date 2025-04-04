@@ -60,13 +60,19 @@ class Loss(nn.Module):
             raise ValueError("Log_prob has nan!")
 
         labels = row.view(row.shape[0], 1)
-        unique_labels, labels_count = labels.unique(dim=0, return_counts=True)
+        unique_labels, inverse_indices, labels_count = labels.unique(dim=0, return_inverse=True, return_counts=True)
         log_probs = log_probs[row, col]
 
         log_probs = log_probs.view(-1, 1)
+        inverse_indices = inverse_indices.view(-1, 1)
         loss = torch.zeros_like(unique_labels, dtype=torch.float).to(device)
-        loss.scatter_add_(0, labels, log_probs)
+        loss.scatter_add_(0, inverse_indices, log_probs)
         loss = -1 * loss / labels_count.float().unsqueeze(1)
+
+        # log_probs = log_probs.view(-1, 1)
+        # loss = torch.zeros_like(unique_labels, dtype=torch.float).to(device)
+        # loss.scatter_add_(0, labels, log_probs)
+        # loss = -1 * loss / labels_count.float().unsqueeze(1)
 
         if self.scale_by_temperature:
             loss *= self.temperature
