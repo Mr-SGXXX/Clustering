@@ -135,6 +135,9 @@ def get_logger(log_dir:str, description:str, std_out:bool=True):
     logger = logging.getLogger(__name__)
     logger.setLevel(level=logging.INFO)
 
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
     # Set file handler
     log_dir = os.path.join(log_dir, f"{description}.log")
     handler = logging.FileHandler(log_dir)
