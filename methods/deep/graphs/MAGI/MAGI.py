@@ -139,7 +139,7 @@ class MAGI(DeepMethod):
                         optimizer.step()
                         total_loss += loss.item()
                         total_examples += batch_size
-                        if (time.time() - ts_train) // 60 >= self.max_duration:
+                        if (time() - ts_train) // 60 >= self.max_duration:
                             self.logger.info(f"Maximum training time is exceeded at epoch {epoch}.")
                             stop_pos = True
                             break

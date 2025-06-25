@@ -49,8 +49,7 @@ from utils.metrics import evaluate
 from utils import config
 from methods.deep.base import DeepMethod
 
-# from .GraphMAE_model import GraphMAE_Net, LogReg
-# from .GraphMAE_utils import preprocess_features, normalize_adj, sparse_mx_to_torch_sparse_tensor
+from .GraphMAE_model import PreModel
 # This method reproduction refers to the following repository:
 # https://github.com/THUDM/GraphMAE
 # GraphMAE is a representation learning method that aims to learn a good representation of the graph data.
@@ -61,12 +60,28 @@ class GraphMAE(DeepMethod):
         super().__init__(dataset, description, logger, cfg)
         self.input_dim = dataset.input_dim
         self.max_epoch = cfg.get("GraphMAE", "max_epoch")
-        self.max_epoch_f = cfg.get("GraphMAE", "max_epoch_f")
         self.num_hidden = cfg.get("GraphMAE", "num_hidden")
         self.num_layers = cfg.get("GraphMAE", "num_layers")
         self.encoder_type = cfg.get("GraphMAE", "encoder_type")
         self.decoder_type = cfg.get("GraphMAE", "decoder_type")
+        self.num_nheads = cfg.get("GraphMAE", "num_nheads")
+        self.num_out_heads = cfg.get("GraphMAE", "num_out_heads")
+        self.activation = cfg.get("GraphMAE", "activation")
+        self.in_drop = cfg.get("GraphMAE", "in_drop")
+        self.attn_drop = cfg.get("GraphMAE", "attn_drop")
+        self.negative_slope = cfg.get("GraphMAE", "negative_slope") 
+        self.residual = cfg.get("GraphMAE", "residual")
+        self.norm = cfg.get("GraphMAE", "norm")
+        self.mask_rate = cfg.get("GraphMAE", "mask_rate")
+        self.loss_fn = cfg.get("GraphMAE", "loss_fn")
+        self.drop_edge_rate = cfg.get("GraphMAE", "drop_edge_rate")
         self.replace_rate = cfg.get("GraphMAE", "replace_rate")
+        self.lr = cfg.get("GraphMAE", "learn_rate")
+        self.weight_decay = cfg.get("GraphMAE", "weight_decay")
+        self.patience = cfg.get("GraphMAE", "patience")
+        self.use_scheduler = cfg.get("GraphMAE", "use_scheduler")
+        self.alpha_l = cfg.get("GraphMAE", "alpha_l")
+        self.concat_hidden = cfg.get("GraphMAE", "concat_hidden")
         
         
         
@@ -74,24 +89,37 @@ class GraphMAE(DeepMethod):
         self.weight_dir = os.path.join(self.weight_dir, "GraphMAE")
         self.dataset.use_label_data()
         graph:GraphData = self.dataset.to_graph(distance_type="NormCos", k=3)
-        adj = graph.edge_index.to_torch_sparse_coo_tensor()
-        indices = adj.coalesce().indices().cpu().numpy()
-        values = adj.coalesce().values().cpu().numpy()
-        shape = adj.size()
-        adj = sp.csr_matrix((values, indices), shape=shape)
-        features = preprocess_features(graph.x).unsqueeze(0).to(self.device)
+        features = graph.x.to(self.device)
+        edge_index = graph.edge_index.to_torch_sparse_coo_tensor().coalesce().indices()
+        edge_index = to_undirected(add_remaining_self_loops(edge_index)[0]).to(self.device)
         
-        nb_nodes = features.shape[1]
+        model:PreModel = PreModel(
+            in_dim=self.input_dim,
+            num_hidden=self.num_hidden, 
+            num_layers=self.num_layers,
+            nhead=self.num_nheads,
+            nhead_out=self.num_out_heads,
+            activation=self.activation,
+            feat_drop=self.in_drop,
+            attn_drop=self.attn_drop,
+            negative_slope=self.negative_slope,
+            residual=self.residual,
+            encoder_type=self.encoder_type,
+            decoder_type=self.decoder_type,
+            mask_rate=self.mask_rate,
+            norm=self.norm,
+            loss_fn=self.loss_fn,
+            drop_edge_rate=self.drop_edge_rate,
+            replace_rate=self.replace_rate,
+            alpha_l=self.alpha_l,
+            concat_hidden=self.concat_hidden,
+        ).to(self.device)
         
-        adj = normalize_adj(adj + sp.eye(adj.shape[0]))
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         
-        adj = sparse_mx_to_torch_sparse_tensor(adj).to(self.device)
-        
-        model:GraphMAE_Net = GraphMAE_Net(self.input_dim, self.hid_units, self.nonlinearity).to(self.device)
-        
-        optimiser = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.l2_coef)
-        
-        b_xent = nn.BCEWithLogitsLoss()
+        if self.use_scheduler:
+            scheduler = lambda epoch :( 1 + np.cos((epoch) * np.pi / self.max_epoch) ) * 0.5
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=scheduler)
         
         cnt_wait = 0
         best = 1e9
@@ -100,22 +128,12 @@ class GraphMAE(DeepMethod):
         with tqdm(range(self.max_epoch), desc="Clustering Training", dynamic_ncols=True, leave=False) as epoch_loader:
             for epoch in epoch_loader:
                 model.train()
-                optimiser.zero_grad()
+                optimizer.zero_grad()
 
-                idx = np.random.permutation(nb_nodes)
-                shuf_fts = features[:, idx, :]
-
-                lbl_1 = torch.ones(1, nb_nodes).to(self.device)
-                lbl_2 = torch.zeros(1, nb_nodes).to(self.device)
-                lbl = torch.cat((lbl_1, lbl_2), 1)
-                
-
-                logits = model(features, shuf_fts, adj, True, None, None, None) 
-
-                loss = b_xent(logits, lbl)
+                loss, _ = model(features, edge_index)
                 
                 loss.backward()
-                optimiser.step()
+                optimizer.step()
                 
                 if loss < best:
                     best = loss
@@ -132,7 +150,7 @@ class GraphMAE(DeepMethod):
                     break
                 
                 model.eval()
-                h = model.embed(features, adj, True, None)[0].squeeze(0).cpu().detach().numpy()
+                h = model.embed(features, edge_index).cpu().detach().numpy()
                 y_pred = KMeans(n_clusters=self.n_clusters, random_state=self.cfg["global"]["seed"]).fit_predict(h)
                 model.train()
                 
@@ -155,7 +173,7 @@ class GraphMAE(DeepMethod):
         
         model.load_state_dict(torch.load(os.path.join(self.weight_dir, "best_GraphMAE.pkl")))
         model.eval()
-        h = model.embed(features, adj, True, None)[0].squeeze(0).cpu().detach().numpy()
+        h = model.embed(features, edge_index).cpu().detach().numpy()
         y_pred = KMeans(n_clusters=self.n_clusters, random_state=self.cfg["global"]["seed"]).fit_predict(h)
         
         if self.cfg.get("global", "record_sc"):

@@ -42,6 +42,7 @@ from .graphs.DCRN import DCRN
 from .graphs.DMoN import DMoN
 from .graphs.MinCutPool import MinCutPool
 from .graphs.MGCN import MGCN
+from .graphs.GraphMAE import GraphMAE
 
 """
 The Dictionary of Deep clustering methods
@@ -155,6 +156,11 @@ DEEP_METHODS = {
     # Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. 2024: 1968-1979.
     # https://dl.acm.org/doi/pdf/10.1145/3637528.3671967
     "MAGI": MAGI,
+    # Hou Z, Liu X, Cen Y, et al. 
+    # Graphmae: Self-supervised masked graph autoencoders[C]
+    # Proceedings of the 28th ACM SIGKDD conference on knowledge discovery and data mining. 2022: 594-604.
+    # https://dl.acm.org/doi/pdf/10.1145/3534678.3539321
+    "GraphMAE": GraphMAE,
 }
 
 """
@@ -185,4 +191,5 @@ DEEP_METHODS_INPUT_TYPES = {
     "MGCN": ["seq"],
     "DGCluster": ["seq"],
     "MAGI": ["seq"],
+    "GraphMAE": ["seq"],
 }
